@@ -4,8 +4,8 @@ import { Bell, Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { navItems } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { useAuth, UserButton } from "@clerk/nextjs";
 
 interface TopbarProps {
   sidebarOpen: boolean;
@@ -14,6 +14,7 @@ interface TopbarProps {
 
 export function Topbar({ sidebarOpen, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname();
+  const { isSignedIn } = useAuth();
 
   const currentPage =
     navItems.find(
@@ -60,11 +61,15 @@ export function Topbar({ sidebarOpen, onToggleSidebar }: TopbarProps) {
           <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
 
-        <Avatar className="h-8 w-8 cursor-pointer">
-          <AvatarFallback className="text-xs bg-muted text-muted-foreground">
-            MA
-          </AvatarFallback>
-        </Avatar>
+        {isSignedIn && (
+          <UserButton
+            appearance={{
+              elements: {
+                avatarBox: "h-8 w-8",
+              },
+            }}
+          />
+        )}
       </div>
     </header>
   );
