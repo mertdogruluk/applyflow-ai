@@ -1,0 +1,149 @@
+// ApplyFlow AI — Prisma Schema
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ApplicationStatus {
+  WISHLIST
+  APPLIED
+  ASSESSMENT
+  INTERVIEW
+  OFFER
+  REJECTED
+  ACCEPTED
+  WITHDRAWN
+}
+
+enum WorkType {
+  REMOTE
+  HYBRID
+  ON_SITE
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  INTERNSHIP
+  CONTRACT
+  FREELANCE
+}
+
+enum ReminderStatus {
+  PENDING
+  DONE
+  DISMISSED
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+/// Bir iş veya staj başvurusunu temsil eder.
+/// userId, Clerk tarafından yönetilen kullanıcıya aittir; ayrı User modeli yoktur.
+model Job {
+  id       String @id @default(cuid())
+  userId   String // Clerk userId — veri izolasyonu bu alan üzerinden sağlanır
+
+  title    String
+  company  String
+  location String?
+
+  workType WorkType          @default(HYBRID)
+  jobType  JobType           @default(FULL_TIME)
+  status   ApplicationStatus @default(WISHLIST)
+
+  jobUrl   String?
+  salary   String?
+  notes    String?
+
+  appliedAt DateTime?
+  deadline  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  projects  JobProject[]
+  analysis  AiAnalysis?
+  reminders Reminder[]
+
+  @@index([userId])
+}
+
+/// Kullanıcının GitHub veya portfolio projesini temsil eder.
+/// Birden fazla iş başvurusuna bağlanabilir (many-to-many via JobProject).
+model Project {
+  id          String  @id @default(cuid())
+  userId      String // Clerk userId
+
+  name        String
+  description String?
+  githubUrl   String?
+  liveUrl     String?
+  techStack   String[] // Örn: ["Next.js", "TypeScript", "PostgreSQL"]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // İlişkiler
+  jobs JobProject[]
+
+  @@index([userId])
+}
+
+/// Job ile Project arasındaki many-to-many ilişki tablosu.
+/// "Bu proje hangi başvurularda kullanıldı?" sorusunu yanıtlar.
+model JobProject {
+  jobId     String
+  projectId String
+
+  createdAt DateTime @default(now())
+
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([jobId, projectId])
+}
+
+/// Bir iş başvurusu için üretilen yapay zeka analiz sonucunu temsil eder.
+/// Her Job'un en fazla bir AiAnalysis'i olabilir (1-to-1).
+model AiAnalysis {
+  id    String @id @default(cuid())
+  jobId String @unique // 1 job → 1 analysis
+
+  summary     String?
+  matchScore  Int? // 0–100 arası uyum puanı
+  strengths   String[]
+  weaknesses  String[]
+  suggestions String[]
+  rawResult   Json? // API'den gelen ham yanıt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+/// Bir iş başvurusuna bağlı hatırlatıcıyı temsil eder.
+model Reminder {
+  id    String @id @default(cuid())
+  jobId String
+
+  title  String
+  dueAt  DateTime
+  status ReminderStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+}
