@@ -59,9 +59,13 @@ model Job {
   jobType  JobType           @default(FULL_TIME)
   status   ApplicationStatus @default(WISHLIST)
 
-  jobUrl   String?
-  salary   String?
-  notes    String?
+  jobUrl      String?
+  salary      String?
+  notes       String?
+  source      String?  // Kaynak: LinkedIn, Indeed, Referral vb.
+  description String?  // İş ilanı açıklaması
+  cvVersion   String?  // Gönderilen CV versiyonu
+  coverLetter String?  // Kapak mektubu metni
 
   appliedAt DateTime?
   deadline  DateTime?

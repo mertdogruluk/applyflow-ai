@@ -1,0 +1,9 @@
+origin	https://github.com/mertdogruluk/applyflow-ai (fetch)
+origin	https://github.com/mertdogruluk/applyflow-ai (push)
+* develop
+  remotes/origin/HEAD -> origin/develop
+  remotes/origin/develop
+  remotes/origin/main
+11bc87f feat(dashboard): add dashboard UI shell with sidebar, topbar & stat cards
+1bb18d0 feat: initial commit
+732f3cc Initial commit from Create Next App
