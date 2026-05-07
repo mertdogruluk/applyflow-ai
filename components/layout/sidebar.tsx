@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 import { navItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { Zap } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -16,6 +17,13 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  const fullName = user?.fullName ?? user?.username ?? "Account";
+  const email = user?.primaryEmailAddress?.emailAddress ?? "";
+  const initials =
+    ((user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "")).toUpperCase() ||
+    fullName.slice(0, 2).toUpperCase();
 
   return (
     <>
@@ -83,20 +91,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
         <Separator className="bg-sidebar-border" />
 
-        {/* User stub */}
+        {/* User card */}
         <div className="flex items-center gap-3 px-5 py-4">
           <Avatar className="h-8 w-8">
+            {user?.imageUrl && <AvatarImage src={user.imageUrl} alt={fullName} />}
             <AvatarFallback className="text-xs bg-muted text-muted-foreground">
-              MA
+              {initials}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-xs font-medium text-sidebar-foreground">
-              Mert Doğruluk
+              {fullName}
             </p>
-            <p className="truncate text-[10px] text-sidebar-foreground/50">
-              mert@applyflow.ai
-            </p>
+            {email && (
+              <p className="truncate text-[10px] text-sidebar-foreground/50">
+                {email}
+              </p>
+            )}
           </div>
         </div>
       </aside>
