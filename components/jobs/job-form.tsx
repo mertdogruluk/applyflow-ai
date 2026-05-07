@@ -75,7 +75,6 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
     register,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<JobFormValues, unknown, JobFormOutput>({
     resolver: zodResolver(jobFormSchema),
