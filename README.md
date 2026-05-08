@@ -99,15 +99,17 @@ Key principles:
 
 ## Screenshots
 
-> _Add your own screenshots here once deployed._
-> Recommended: dashboard, jobs list, job detail with AI analysis, projects, analytics.
+### Dashboard
+![Dashboard](docs/screenshots/dashboard.png)
 
-```
-docs/screenshots/dashboard.png
-docs/screenshots/job-detail.png
-docs/screenshots/ai-analysis.png
-docs/screenshots/analytics.png
-```
+### Add New Job
+![Add New Job](docs/screenshots/jobs-new.png)
+
+### AI Analysis
+![AI Analysis](docs/screenshots/ai-analysis.png)
+
+### Analytics
+![Analytics](docs/screenshots/analytics.png)
 
 ---
 

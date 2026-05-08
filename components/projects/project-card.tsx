@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Github, ExternalLink, Briefcase } from "lucide-react";
 import type { Project } from "@prisma/client";
