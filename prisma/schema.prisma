@@ -2,12 +2,14 @@
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 // ─── Enums ───────────────────────────────────────────────────────────────────
@@ -43,6 +45,15 @@ enum ReminderStatus {
   DISMISSED
 }
 
+/// LLM-as-a-Judge bir (Job, Project) çifti için kategorik karar verir.
+/// fitScore'un yanında saklanır; UI'da rozet / filtre olarak kullanılır.
+enum MatchVerdict {
+  STRONG_FIT
+  MODERATE_FIT
+  WEAK_FIT
+  NOT_RELEVANT
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 /// Bir iş veya staj başvurusunu temsil eder.
@@ -73,10 +84,17 @@ model Job {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ─── Vector matching alanları ─────────────────────────────────────────────
+  // Prisma pgvector'ü native desteklemez → Unsupported + $queryRaw.
+  // Gemini text-embedding-004 = 768 boyut. Modeli değiştirirsen migration gerekir.
+  embedding  Unsupported("vector(768)")?
+  embeddedAt DateTime? // son embedding üretim zamanı (updatedAt > embeddedAt ise bayat)
+
   // İlişkiler
   projects  JobProject[]
   analysis  AiAnalysis?
   reminders Reminder[]
+  matches   MatchResult[]
 
   @@index([userId])
 }
@@ -96,8 +114,15 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // ─── Vector matching alanları ─────────────────────────────────────────────
+  // Aynı boyut (768) ve aynı model ile üretilmek zorunda; aksi halde cosine
+  // benzerliği anlamsızlaşır. Embedding üretimi lib/ai/embeddings.ts'de.
+  embedding  Unsupported("vector(768)")?
+  embeddedAt DateTime?
+
   // İlişkiler
-  jobs JobProject[]
+  jobs    JobProject[]
+  matches MatchResult[]
 
   @@index([userId])
 }
@@ -133,6 +158,38 @@ model AiAnalysis {
   updatedAt DateTime @updatedAt
 
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+/// Vector retrieval + LLM-as-a-Judge sonucunda üretilen eşleştirme kaydı.
+/// Bir job için 0..N MatchResult olabilir (her aday proje için bir tane).
+/// JobProject ile karıştırılmamalı: JobProject = "bu projeyi başvuruda kullandım",
+/// MatchResult = "AI bu projenin bu işe uyduğunu söyledi".
+model MatchResult {
+  id        String @id @default(cuid())
+  jobId     String
+  projectId String
+
+  /// LLM-as-a-Judge'ın holistik puanı (0-100). Genellikle UI'da gösterilen budur.
+  fitScore Int
+  /// Vector retrieval'dan gelen ham cosine benzerliği (0-1). Debug + sıralama için.
+  similarity Float
+  verdict    MatchVerdict
+  /// Judge'ın gerekçesi — kullanıcıya gösterilir.
+  reasoning  String
+  strengths  String[]
+  gaps       String[]
+  /// LLM'in döndürdüğü ham JSON yanıtı (audit + reproducibility).
+  rawResult  Json?
+
+  judgedAt DateTime @default(now())
+
+  job     Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  /// Aynı (job, project) çifti yeniden yargılanırsa upsert için anahtar.
+  @@unique([jobId, projectId])
+  @@index([jobId])
+  @@index([projectId])
 }
 
 /// Bir iş başvurusuna bağlı hatırlatıcıyı temsil eder.
