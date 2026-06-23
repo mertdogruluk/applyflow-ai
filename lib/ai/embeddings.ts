@@ -8,7 +8,9 @@ import { MissingApiKeyError } from "@/lib/ai/gemini";
 
 // ─── Sabitler ────────────────────────────────────────────────────────────────
 
-const GEMINI_EMBEDDING_MODEL = "text-embedding-004";
+// gemini-embedding-001 = Google'ın aktif production embedding modeli.
+// Varsayılan çıktı 3072 boyuttur; outputDimensionality ile 768'e indiriyoruz.
+const GEMINI_EMBEDDING_MODEL = "gemini-embedding-001";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /** Schema'daki vector(768) ile birebir eşleşmek zorunda. */
@@ -173,9 +175,11 @@ async function callEmbedOnce(
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model:   `models/${GEMINI_EMBEDDING_MODEL}`,
-          content: { parts: [{ text }] },
+          model:                `models/${GEMINI_EMBEDDING_MODEL}`,
+          content:              { parts: [{ text }] },
           taskType,
+          // Modelin varsayılan boyutu 3072; pgvector kolonuyla uyum için 768 zorunlu.
+          outputDimensionality: EMBEDDING_DIMENSIONS,
         }),
       },
     );

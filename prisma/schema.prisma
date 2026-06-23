@@ -86,7 +86,8 @@ model Job {
 
   // ─── Vector matching alanları ─────────────────────────────────────────────
   // Prisma pgvector'ü native desteklemez → Unsupported + $queryRaw.
-  // Gemini text-embedding-004 = 768 boyut. Modeli değiştirirsen migration gerekir.
+  // Gemini gemini-embedding-001 (outputDimensionality=768) ile üretilir.
+  // Boyutu değiştirirsen yeni bir migration ile vector(N) tipini güncellemen gerekir.
   embedding  Unsupported("vector(768)")?
   embeddedAt DateTime? // son embedding üretim zamanı (updatedAt > embeddedAt ise bayat)
 
