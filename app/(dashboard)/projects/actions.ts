@@ -1,11 +1,27 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectFormSchema } from "@/lib/validations/project";
+import { embedProject } from "@/lib/ai/embeddings";
+
+/**
+ * Response sonrası arka planda embedding yeniler; hata akışı bozmaz.
+ * embedProject içindeki stale-check gereksiz API çağrısını zaten önler.
+ */
+function scheduleProjectEmbedding(projectId: string, userId: string) {
+  after(async () => {
+    try {
+      await embedProject(projectId, userId);
+    } catch (e) {
+      console.error(`[projects] background embedding failed for ${projectId}:`, e);
+    }
+  });
+}
 
 // ─── Create ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +45,8 @@ export async function createProject(rawData: unknown) {
       techStack:   data.techStackInput,
     },
   });
+
+  scheduleProjectEmbedding(project.id, userId);
 
   revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
@@ -60,6 +78,8 @@ export async function updateProject(projectId: string, rawData: unknown) {
   if (result.count === 0) {
     throw new Error("Project not found or you don't have access.");
   }
+
+  scheduleProjectEmbedding(projectId, userId);
 
   revalidatePath("/projects");
   revalidatePath(`/projects/${projectId}`);

@@ -114,19 +114,47 @@ interface JobEmbedInput {
   workType:    string;
   jobType:     string;
   description: string | null;
+  mustHaves:   string[];
+  niceToHaves: string[];
 }
 
 /**
  * Job'un kanonik embedding metni. Sırası başlıkta-tekrar deseniyle önemli
- * sinyalleri öne çıkarır: title + company > location/workType > description.
+ * sinyalleri öne çıkarır: title + company > structured beceriler > description.
+ * parseJob çalışmışsa damıtılmış mustHaves/niceToHaves ham metinden önce gelir —
+ * boilerplate ("we offer competitive compensation" vb.) gürültüsünü bastırır.
  */
 export function buildJobEmbedText(job: JobEmbedInput): string {
-  const meta = [job.location ?? "—", job.workType, job.jobType].join(" | ");
+  const meta  = [job.location ?? "—", job.workType, job.jobType].join(" | ");
+  const lines = [`${job.title} at ${job.company}`, `Location: ${meta}`];
+
+  if (job.mustHaves.length) {
+    lines.push(`Required skills: ${job.mustHaves.join(", ")}`);
+  }
+  if (job.niceToHaves.length) {
+    lines.push(`Preferred skills: ${job.niceToHaves.join(", ")}`);
+  }
+
+  lines.push("", job.description?.trim() ?? "");
+  return lines.join("\n").trim();
+}
+
+interface CandidateEmbedInput {
+  coreSkills:        string[];
+  toolsTech:         string[];
+  yearsOfExperience: number;
+}
+
+/**
+ * Aday profilinin kanonik embedding metni (parseCv çıktısından).
+ * Job tarafındaki "Required/Preferred skills" satırlarıyla kelime dağarcığı
+ * bilinçli olarak paralel — embedding uzayında yakınlık bu simetriden beslenir.
+ */
+export function buildCandidateEmbedText(profile: CandidateEmbedInput): string {
   return [
-    `${job.title} at ${job.company}`,
-    `Location: ${meta}`,
-    "",
-    job.description?.trim() ?? "",
+    `Skills: ${profile.coreSkills.join(", ") || "—"}`,
+    `Tools and technologies: ${profile.toolsTech.join(", ") || "—"}`,
+    `Professional experience: ${profile.yearsOfExperience} years`,
   ]
     .join("\n")
     .trim();
@@ -301,6 +329,8 @@ export async function embedJob(
       workType:    true,
       jobType:     true,
       description: true,
+      mustHaves:   true,
+      niceToHaves: true,
       updatedAt:   true,
       embeddedAt:  true,
     },
@@ -369,6 +399,50 @@ export async function embedProject(
     SET "embedding"  = ${literal}::vector,
         "embeddedAt" = NOW()
     WHERE "id" = ${projectId} AND "userId" = ${userId}
+  `;
+
+  return { updated: true };
+}
+
+/**
+ * Aday profilinin embedding'ini günceller. userId hem PK hem sahiplik —
+ * kullanıcı yalnızca kendi profilini embed edebilir (parametre Clerk
+ * session'ından gelir, dışarıdan id kabul edilmez).
+ */
+export async function embedCandidateProfile(
+  userId: string,
+  options: EmbedOptions = {},
+): Promise<EmbedResult> {
+  const profile = await prisma.candidateProfile.findUnique({
+    where:  { userId },
+    select: {
+      coreSkills:        true,
+      toolsTech:         true,
+      yearsOfExperience: true,
+      updatedAt:         true,
+      embeddedAt:        true,
+    },
+  });
+
+  if (!profile) throw new Error("Candidate profile not found. Analyze a CV first.");
+
+  if (!options.force && !isEmbeddingStale(profile)) {
+    return { updated: false, reason: "fresh" };
+  }
+
+  const text = buildCandidateEmbedText(profile);
+  if (text.length < MIN_INPUT_CHARS) {
+    return { updated: false, reason: "too-short" };
+  }
+
+  const values  = await generateEmbedding(text, "RETRIEVAL_DOCUMENT");
+  const literal = toVectorLiteral(values);
+
+  await prisma.$executeRaw`
+    UPDATE "CandidateProfile"
+    SET "embedding"  = ${literal}::vector,
+        "embeddedAt" = NOW()
+    WHERE "userId" = ${userId}
   `;
 
   return { updated: true };
