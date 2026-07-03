@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApplicationStatus } from "@prisma/client";
@@ -8,6 +9,49 @@ import { z } from "zod";
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { jobFormSchema } from "@/lib/validations/job";
+import { parseJob } from "@/lib/ai/job-parser";
+import { embedJob } from "@/lib/ai/embeddings";
+
+// ─── Background enrichment ───────────────────────────────────────────────────
+
+/**
+ * Response gönderildikten sonra çalışır (after): description'ı parseJob ile
+ * damıtır, sonra embedding'i yeniler. Sıra önemli — embed metni structured
+ * alanları kullandığı için önce parse, sonra embed.
+ * Hatalar loglanır ama kullanıcı akışını asla bozmaz (enrichment opsiyoneldir).
+ */
+function scheduleJobEnrichment(jobId: string, userId: string, reparse: boolean) {
+  after(async () => {
+    if (reparse) {
+      try {
+        const job = await prisma.job.findFirst({
+          where:  { id: jobId, userId },
+          select: { description: true },
+        });
+        if (job?.description) {
+          const analysis = await parseJob(job.description);
+          await prisma.job.updateMany({
+            where: { id: jobId, userId },
+            data: {
+              mustHaves:          analysis.must_haves,
+              niceToHaves:        analysis.nice_to_haves,
+              minYearsExperience: analysis.min_years_experience,
+              parsedAt:           new Date(),
+            },
+          });
+        }
+      } catch (e) {
+        console.error(`[jobs] background requirements parse failed for ${jobId}:`, e);
+      }
+    }
+
+    try {
+      await embedJob(jobId, userId);
+    } catch (e) {
+      console.error(`[jobs] background embedding failed for ${jobId}:`, e);
+    }
+  });
+}
 
 // ─── Create ──────────────────────────────────────────────────────────────────
 
@@ -21,7 +65,7 @@ export async function createJob(rawData: unknown) {
   }
   const data = parsed.data;
 
-  await prisma.job.create({
+  const job = await prisma.job.create({
     data: {
       userId,
       title:       data.title,
@@ -42,6 +86,8 @@ export async function createJob(rawData: unknown) {
     },
   });
 
+  scheduleJobEnrichment(job.id, userId, Boolean(data.description));
+
   revalidatePath("/jobs");
   revalidatePath("/dashboard");
   redirect("/jobs");
@@ -58,6 +104,12 @@ export async function updateJob(jobId: string, rawData: unknown) {
     throw new Error(`Validation failed: ${messages}`);
   }
   const data = parsed.data;
+
+  // Description değişti mi / hiç parse edilmedi mi? (gereksiz Gemini çağrısını önle)
+  const existing = await prisma.job.findFirst({
+    where:  { id: jobId, userId },
+    select: { description: true, parsedAt: true },
+  });
 
   // Sadece kendi kaydı güncellenebilir
   const result = await prisma.job.updateMany({
@@ -84,6 +136,12 @@ export async function updateJob(jobId: string, rawData: unknown) {
   if (result.count === 0) {
     throw new Error("Job not found or you don't have access.");
   }
+
+  const descriptionChanged =
+    (data.description ?? null) !== (existing?.description ?? null);
+  const reparse =
+    Boolean(data.description) && (descriptionChanged || !existing?.parsedAt);
+  scheduleJobEnrichment(jobId, userId, reparse);
 
   revalidatePath("/jobs");
   revalidatePath(`/jobs/${jobId}`);

@@ -78,6 +78,13 @@ model Job {
   cvVersion   String?  // Gönderilen CV versiyonu
   coverLetter String?  // Kapak mektubu metni
 
+  // ─── Structured gereksinimler (lib/ai/job-parser.ts çıktısı) ──────────────
+  // description'dan parseJob ile damıtılır; embedding ve gap analizi bunları kullanır.
+  mustHaves          String[] // Kesin gereken teknik beceriler
+  niceToHaves        String[] // Olursa iyi beceriler
+  minYearsExperience Int?     // null = ilan belirtmemiş (0 = açıkça giriş seviyesi)
+  parsedAt           DateTime? // parseJob'ın son çalıştığı an (updatedAt ile stale-check)
+
   appliedAt DateTime?
   deadline  DateTime?
 
@@ -159,6 +166,27 @@ model AiAnalysis {
   updatedAt DateTime @updatedAt
 
   job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+}
+
+/// Kullanıcının CV'sinden damıtılmış aday profili (lib/ai/cv-parser.ts çıktısı).
+/// Clerk userId başına en fazla 1 kayıt — ayrı User modeli olmadığı için
+/// profil verisinin doğal evi burası. Embedding'i iş ilanlarıyla vektörel
+/// eşleştirmede kullanılır.
+model CandidateProfile {
+  userId String @id // Clerk userId — hem PK hem veri izolasyonu
+
+  cvText            String? // Ham CV metni (yeniden analiz + audit için)
+  coreSkills        String[] // Örn: ["Frontend Development", "System Design"]
+  toolsTech         String[] // Örn: ["React", "PostgreSQL", "Docker"]
+  yearsOfExperience Float    @default(0)
+
+  // ─── Vector matching alanları ─────────────────────────────────────────────
+  // Job/Project ile aynı model (gemini-embedding-001) ve boyut (768) zorunlu.
+  embedding  Unsupported("vector(768)")?
+  embeddedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 /// Vector retrieval + LLM-as-a-Judge sonucunda üretilen eşleştirme kaydı.
