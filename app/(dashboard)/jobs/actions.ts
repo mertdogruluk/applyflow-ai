@@ -1,6 +1,5 @@
 "use server";
 
-import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ApplicationStatus } from "@prisma/client";
@@ -9,48 +8,47 @@ import { z } from "zod";
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { jobFormSchema } from "@/lib/validations/job";
-import { parseJob } from "@/lib/ai/job-parser";
-import { embedJob } from "@/lib/ai/embeddings";
+import { parseJob, JobTooShortError, JobParserError, type JobAnalysis } from "@/lib/ai/job-parser";
+import { GeminiError, MissingApiKeyError } from "@/lib/ai/gemini";
+import { scheduleJobEnrichment } from "@/lib/jobs/enrichment";
 
-// ─── Background enrichment ───────────────────────────────────────────────────
+// ─── Analyze (form-time, persist yok) ────────────────────────────────────────
 
 /**
- * Response gönderildikten sonra çalışır (after): description'ı parseJob ile
- * damıtır, sonra embedding'i yeniler. Sıra önemli — embed metni structured
- * alanları kullandığı için önce parse, sonra embed.
- * Hatalar loglanır ama kullanıcı akışını asla bozmaz (enrichment opsiyoneldir).
+ * Result-object sözleşmesi: Server Action'da fırlatılan mesajlar production'da
+ * maskelenir; "ilan çok kısa" gibi kullanıcıya gösterilecek hatalar aynen
+ * taşınmalı. Bilinmeyen hatalar throw edilmeye devam eder.
  */
-function scheduleJobEnrichment(jobId: string, userId: string, reparse: boolean) {
-  after(async () => {
-    if (reparse) {
-      try {
-        const job = await prisma.job.findFirst({
-          where:  { id: jobId, userId },
-          select: { description: true },
-        });
-        if (job?.description) {
-          const analysis = await parseJob(job.description);
-          await prisma.job.updateMany({
-            where: { id: jobId, userId },
-            data: {
-              mustHaves:          analysis.must_haves,
-              niceToHaves:        analysis.nice_to_haves,
-              minYearsExperience: analysis.min_years_experience,
-              parsedAt:           new Date(),
-            },
-          });
-        }
-      } catch (e) {
-        console.error(`[jobs] background requirements parse failed for ${jobId}:`, e);
-      }
-    }
+export type AnalyzeJobResult =
+  | { ok: true; analysis: JobAnalysis }
+  | { ok: false; error: string };
 
-    try {
-      await embedJob(jobId, userId);
-    } catch (e) {
-      console.error(`[jobs] background embedding failed for ${jobId}:`, e);
+/**
+ * Form üzerindeki "Analyze with AI" butonunun action'ı. Job henüz var olmadığı
+ * için hiçbir şey persist etmez — çıktı react-hook-form alanlarına yazılır ve
+ * submit'te createJob/updateJob tarafından kaydedilir.
+ */
+export async function analyzeJobDescription(rawText: unknown): Promise<AnalyzeJobResult> {
+  await requireUserId();
+
+  if (typeof rawText !== "string" || rawText.trim().length === 0) {
+    return { ok: false, error: "Paste a job posting first." };
+  }
+
+  try {
+    const analysis = await parseJob(rawText);
+    return { ok: true, analysis };
+  } catch (e) {
+    if (
+      e instanceof JobTooShortError ||
+      e instanceof JobParserError ||
+      e instanceof GeminiError ||
+      e instanceof MissingApiKeyError
+    ) {
+      return { ok: false, error: e.message };
     }
-  });
+    throw e;
+  }
 }
 
 // ─── Create ──────────────────────────────────────────────────────────────────
@@ -64,6 +62,10 @@ export async function createJob(rawData: unknown) {
     throw new Error(`Validation failed: ${messages}`);
   }
   const data = parsed.data;
+
+  // Form üzerinde AI analizi yapıldıysa çıktı hazır gelir — doğrudan persist
+  // edilir ve arka planda parseJob TEKRAR çağrılmaz (tek Gemini maliyeti).
+  const hasFormAnalysis = Array.isArray(data.mustHaves);
 
   const job = await prisma.job.create({
     data: {
@@ -83,10 +85,14 @@ export async function createJob(rawData: unknown) {
       coverLetter: data.coverLetter,
       appliedAt:   data.appliedAt,
       deadline:    data.reminderDate,
+      mustHaves:          data.mustHaves ?? [],
+      niceToHaves:        data.niceToHaves ?? [],
+      minYearsExperience: data.minYearsExperience ?? null,
+      parsedAt:           hasFormAnalysis ? new Date() : null,
     },
   });
 
-  scheduleJobEnrichment(job.id, userId, Boolean(data.description));
+  scheduleJobEnrichment(job.id, userId, Boolean(data.description) && !hasFormAnalysis);
 
   revalidatePath("/jobs");
   revalidatePath("/dashboard");
@@ -111,6 +117,10 @@ export async function updateJob(jobId: string, rawData: unknown) {
     select: { description: true, parsedAt: true },
   });
 
+  // Formda taze AI analizi varsa (mustHaves gönderilmiş) doğrudan persist;
+  // yoksa mevcut parsed alanlara dokunma (undefined → Prisma alanı atlar).
+  const hasFormAnalysis = Array.isArray(data.mustHaves);
+
   // Sadece kendi kaydı güncellenebilir
   const result = await prisma.job.updateMany({
     where: { id: jobId, userId },
@@ -130,6 +140,10 @@ export async function updateJob(jobId: string, rawData: unknown) {
       coverLetter: data.coverLetter ?? null,
       appliedAt:   data.appliedAt ?? null,
       deadline:    data.reminderDate ?? null,
+      mustHaves:          hasFormAnalysis ? data.mustHaves : undefined,
+      niceToHaves:        hasFormAnalysis ? (data.niceToHaves ?? []) : undefined,
+      minYearsExperience: hasFormAnalysis ? (data.minYearsExperience ?? null) : undefined,
+      parsedAt:           hasFormAnalysis ? new Date() : undefined,
     },
   });
 
@@ -140,7 +154,9 @@ export async function updateJob(jobId: string, rawData: unknown) {
   const descriptionChanged =
     (data.description ?? null) !== (existing?.description ?? null);
   const reparse =
-    Boolean(data.description) && (descriptionChanged || !existing?.parsedAt);
+    !hasFormAnalysis &&
+    Boolean(data.description) &&
+    (descriptionChanged || !existing?.parsedAt);
   scheduleJobEnrichment(jobId, userId, reparse);
 
   revalidatePath("/jobs");

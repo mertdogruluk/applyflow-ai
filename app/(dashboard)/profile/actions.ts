@@ -6,7 +6,8 @@ import { z } from "zod";
 
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseCv } from "@/lib/ai/cv-parser";
+import { parseCv, CvTooShortError, CvParserError, type CvAnalysis } from "@/lib/ai/cv-parser";
+import { GeminiError, MissingApiKeyError } from "@/lib/ai/gemini";
 import { embedCandidateProfile } from "@/lib/ai/embeddings";
 
 // ─── Update candidate profile from CV ────────────────────────────────────────
@@ -16,23 +17,43 @@ const cvInputSchema = z.object({
 });
 
 /**
+ * Discriminated union dönüyoruz (throw değil): Server Action'da fırlatılan
+ * hata mesajları production'da Next.js tarafından maskelenir — "CV çok kısa"
+ * gibi kullanıcıya gösterilmesi gereken mesajlar kaybolurdu.
+ */
+export type UpdateProfileResult =
+  | { ok: true; analysis: CvAnalysis }
+  | { ok: false; error: string };
+
+/**
  * Ham CV metnini analiz eder, CandidateProfile'ı upsert eder.
  * Embedding üretimi response sonrası arka planda çalışır (after) —
- * kullanıcı Gemini embedding çağrısını beklemez, hata olursa loglanır
- * ve bir sonraki eşleştirme isteğinde lazy olarak telafi edilir.
- *
- * parseCv hataları (CvTooShortError, GeminiError...) üst katmana fırlatılır;
- * UI orada anlamlı mesaj gösterir.
+ * kullanıcı Gemini embedding çağrısını beklemez; hata olursa loglanır
+ * ve bir sonraki eşleştirme isteğinde lazy backfill ile telafi edilir.
  */
-export async function updateCandidateProfile(rawData: unknown) {
+export async function updateCandidateProfile(rawData: unknown): Promise<UpdateProfileResult> {
   const userId = await requireUserId();
 
   const parsed = cvInputSchema.safeParse(rawData);
   if (!parsed.success) {
-    throw new Error("Invalid input: cvText is required.");
+    return { ok: false, error: "CV text is required." };
   }
 
-  const analysis = await parseCv(parsed.data.cvText);
+  let analysis: CvAnalysis;
+  try {
+    analysis = await parseCv(parsed.data.cvText);
+  } catch (e) {
+    // Bilinen, kullanıcıya gösterilebilir hatalar → mesajı aynen ilet
+    if (
+      e instanceof CvTooShortError ||
+      e instanceof CvParserError ||
+      e instanceof GeminiError ||
+      e instanceof MissingApiKeyError
+    ) {
+      return { ok: false, error: e.message };
+    }
+    throw e; // bilinmeyen hata — maskelenerek yukarı çıksın
+  }
 
   await prisma.candidateProfile.upsert({
     where:  { userId },
@@ -59,6 +80,6 @@ export async function updateCandidateProfile(rawData: unknown) {
     }
   });
 
-  revalidatePath("/settings");
-  return analysis;
+  revalidatePath("/profile");
+  return { ok: true, analysis };
 }
