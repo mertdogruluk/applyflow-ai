@@ -62,6 +62,13 @@ export const jobFormSchema = z.object({
   // Tarih alanları — date input'tan string gelir, Date'e dönüştür
   appliedAt:    z.string().optional().transform((v) => (v ? new Date(v) : undefined)),
   reminderDate: z.string().optional().transform((v) => (v ? new Date(v) : undefined)),
+
+  // AI analiz çıktısı (gizli alanlar) — JobAiAnalyzer setValue ile doldurur.
+  // Formda input'u yoktur; doluysa server bunları doğrudan persist eder ve
+  // arka planda parseJob tekrar çağrılmaz (çifte Gemini maliyeti önlenir).
+  mustHaves:          z.array(z.string().min(1).max(80)).max(50).optional(),
+  niceToHaves:        z.array(z.string().min(1).max(80)).max(50).optional(),
+  minYearsExperience: z.number().min(0).max(60).nullable().optional(),
 });
 
 export type JobFormValues = z.input<typeof jobFormSchema>;

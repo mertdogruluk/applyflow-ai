@@ -25,6 +25,9 @@ import {
   WORK_TYPE_OPTIONS,
   JOB_TYPE_OPTIONS,
 } from "@/lib/validations/job";
+import { JobAiAnalyzer } from "@/components/jobs/job-ai-analyzer";
+import { JobRequirementsPreview } from "@/components/jobs/job-requirements-preview";
+import type { JobAnalysis } from "@/lib/ai/job-parser";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,11 +73,15 @@ function SectionHeader({ title, description }: { title: string; description?: st
 
 export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: JobFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
+  // Son analizin kaynak metni — description sonradan elle değişirse
+  // rozet panelinde "bayat" uyarısı göstermek için.
+  const [analyzedSource, setAnalyzedSource] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<JobFormValues, unknown, JobFormOutput>({
     resolver: zodResolver(jobFormSchema),
@@ -86,10 +93,35 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
     },
   });
 
+  // AI analizi → form alanları. description açık alan olarak dolar;
+  // mustHaves/niceToHaves/minYearsExperience input'suz (gizli) RHF alanlarıdır.
+  const applyAnalysis = (analysis: JobAnalysis, sourceText: string) => {
+    setValue("description", sourceText, { shouldDirty: true });
+    setValue("mustHaves", analysis.must_haves, { shouldDirty: true });
+    setValue("niceToHaves", analysis.nice_to_haves, { shouldDirty: true });
+    setValue("minYearsExperience", analysis.min_years_experience, { shouldDirty: true });
+    setAnalyzedSource(sourceText);
+  };
+
+  const watchedMustHaves   = watch("mustHaves") ?? [];
+  const watchedNiceToHaves = watch("niceToHaves") ?? [];
+  const watchedMinYears    = watch("minYearsExperience");
+  const watchedDescription = watch("description");
+  const analysisIsStale =
+    analyzedSource !== null && (watchedDescription ?? "").trim() !== analyzedSource;
+
   const onSubmit = async (data: JobFormOutput) => {
     setServerError(null);
+    // Bu oturumda AI analizi yapılmadıysa parsed alanları GÖNDERME:
+    // göndermek server'a "taze analiz" sinyali verir (parsedAt yenilenir,
+    // arka plan yeniden-parse atlanır). Düşürünce server mevcut değerleri
+    // korur ve description değiştiyse kendisi yeniden parse eder.
+    const payload =
+      analyzedSource === null
+        ? { ...data, mustHaves: undefined, niceToHaves: undefined, minYearsExperience: undefined }
+        : data;
     try {
-      await action(data);
+      await action(payload);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       // Server redirect hataları "NEXT_REDIRECT" içerir — onları gösterme
@@ -108,6 +140,9 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
           <span>{serverError}</span>
         </div>
       )}
+
+      {/* ── Section 0: AI Smart Fill ─────────────────────────────────────── */}
+      <JobAiAnalyzer onAnalyzed={applyAnalysis} />
 
       {/* ── Section 1: Core Info ──────────────────────────────────────────── */}
       <section>
@@ -327,6 +362,14 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
         </div>
       </section>
 
+      {/* ── Section 5: AI-extracted requirements ─────────────────────────── */}
+      <JobRequirementsPreview
+        mustHaves={watchedMustHaves}
+        niceToHaves={watchedNiceToHaves}
+        minYearsExperience={watchedMinYears}
+        stale={analysisIsStale}
+      />
+
       {/* ── Actions ──────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-end gap-3 border-t border-border pt-6">
         <Button
@@ -337,7 +380,7 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-[120px]">
+        <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-30">
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {isSubmitting ? "Saving…" : submitLabel}
         </Button>

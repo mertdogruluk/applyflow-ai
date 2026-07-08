@@ -38,6 +38,12 @@ export default async function EditJobPage({ params }: Params) {
     coverLetter:  job.coverLetter ?? "",
     appliedAt:    toDateInputValue(job.appliedAt),
     reminderDate: toDateInputValue(job.deadline),
+    // Kayıtlı AI gereksinimleri — rozetler edit'te dolu gelsin.
+    // Yeniden analiz yapılmadıkça submit'te forma GERİ GÖNDERİLMEZ
+    // (JobForm onSubmit'teki analyzedSource guard'ı düşürür).
+    mustHaves:          job.mustHaves,
+    niceToHaves:        job.niceToHaves,
+    minYearsExperience: job.minYearsExperience,
   };
 
   // Server Action partially applied with the job id
