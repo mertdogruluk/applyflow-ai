@@ -2,7 +2,9 @@ import {
   LayoutDashboard,
   Briefcase,
   FolderKanban,
+  Target,
   BarChart3,
+  UserRound,
   Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,9 +32,19 @@ export const navItems: NavItem[] = [
     icon: FolderKanban,
   },
   {
+    label: "Matches",
+    href: "/matches",
+    icon: Target,
+  },
+  {
     label: "Analytics",
     href: "/analytics",
     icon: BarChart3,
+  },
+  {
+    label: "Profile",
+    href: "/profile",
+    icon: UserRound,
   },
   {
     label: "Settings",
