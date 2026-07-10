@@ -115,7 +115,7 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="remotive">{t("discover.srcRemote")}</SelectItem>
-            <SelectItem value="jsearch">{t("discover.srcTurkey")}</SelectItem>
+            <SelectItem value="jooble">{t("discover.srcTurkey")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -135,7 +135,7 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
           </SelectContent>
         </Select>
 
-        {source === "jsearch" && (
+        {source === "jooble" && (
           <div className="relative">
             <MapPin className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input

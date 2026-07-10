@@ -58,7 +58,7 @@ export type DiscoverJobsResult =
 
 /** Panelden gelen filtreleri server tarafında yeniden doğrula (Zod). */
 const discoveryFiltersSchema = z.object({
-  source:   z.enum(["remotive", "jsearch"]),
+  source:   z.enum(["remotive", "jooble"]),
   query:    z.string().max(120).optional(),
   location: z.string().max(120).optional(),
   workType: z.enum(["REMOTE", "HYBRID", "ON_SITE", "ANY"]).optional(),
@@ -107,13 +107,13 @@ const saveDiscoveredJobSchema = z.object({
   location:    z.string().max(200).nullable(),
   salary:      z.string().max(200).nullable(),
   workType:    z.enum(["REMOTE", "HYBRID", "ON_SITE"]).nullable(),
-  source:      z.enum(["remotive", "jsearch"]),
+  source:      z.enum(["remotive", "jooble"]),
 });
 
 /** DiscoverySource → Job.source insan-okur etiketi. */
-const SOURCE_LABEL: Record<"remotive" | "jsearch", string> = {
+const SOURCE_LABEL: Record<"remotive" | "jooble", string> = {
   remotive: "Remotive (AI Discover)",
-  jsearch:  "JSearch (AI Discover)",
+  jooble:   "Jooble (AI Discover)",
 };
 
 export type SaveDiscoveredJobResult =
@@ -150,9 +150,9 @@ export async function saveDiscoveredJob(rawData: unknown): Promise<SaveDiscovere
       title:       data.title,
       company:     data.company,
       status:      "WISHLIST",
-      // Kaynağın bildirdiği tip; bilinmiyorsa remote kaynaklardan gelen
-      // ilanlar için makul varsayılan REMOTE.
-      workType:    data.workType ?? "REMOTE",
+      // Kaynağın bildirdiği tip; null yalnızca Jooble'dan gelir (remote
+      // bayrağı yok) — yerel ilanlar için makul varsayılan ofiste.
+      workType:    data.workType ?? "ON_SITE",
       jobUrl:      data.url,
       location:    data.location,
       salary:      data.salary,

@@ -6,8 +6,11 @@ import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
-const ACCEPTED_EXTENSIONS = [".txt", ".md"];
-const MAX_FILE_SIZE_BYTES = 200 * 1024; // 200 KB — CV metni için fazlasıyla geniş
+const ACCEPTED_EXTENSIONS = [".txt", ".md", ".pdf"];
+const MAX_TEXT_SIZE_BYTES = 200 * 1024; // 200 KB — CV metni için fazlasıyla geniş
+const MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB — görselli PDF CV'ler için
+/** Sunucudaki MIN_CV_LENGTH ile aynı eşik — altı "metin çıkarılamadı" sayılır. */
+const MIN_EXTRACTED_CHARS = 100;
 
 interface CvUploadZoneProps {
   disabled?: boolean;
@@ -20,12 +23,24 @@ interface CvUploadZoneProps {
 /**
  * Sürükle-bırak CV alanı. Kesik çizgili çerçeve; sürükleme sırasında
  * primary vurgu (border + hafif zemin). Tıklanınca dosya seçici açılır.
- * Yalnızca düz metin dosyaları (.txt/.md) — PDF çıkarımı ayrı bir faz.
+ * .txt/.md doğrudan okunur; PDF metni tarayıcıda çıkarılır (unpdf, dinamik
+ * import) — sunucu her durumda düz metin alır. Taranmış (görüntü) PDF'ler
+ * metin veremez; kullanıcı yapıştırma moduna yönlendirilir.
  */
 export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProps) {
   const t = useTranslations("profile");
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isExtracting, setIsExtracting] = useState(false);
+
+  const isBusy = disabled || isExtracting;
+
+  async function extractPdfText(file: File): Promise<string> {
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const pdf = await getDocumentProxy(new Uint8Array(await file.arrayBuffer()));
+    const { text } = await extractText(pdf, { mergePages: true });
+    return text;
+  }
 
   async function handleFile(file: File) {
     const name = file.name.toLowerCase();
@@ -33,23 +48,32 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
       onError(t("errOnlyText"));
       return;
     }
-    if (file.size > MAX_FILE_SIZE_BYTES) {
+
+    const isPdf = name.endsWith(".pdf");
+    if (file.size > (isPdf ? MAX_PDF_SIZE_BYTES : MAX_TEXT_SIZE_BYTES)) {
       onError(t("errTooLarge"));
       return;
     }
 
+    setIsExtracting(true);
     try {
-      const text = await file.text();
+      const text = isPdf ? await extractPdfText(file) : await file.text();
+      if (isPdf && text.trim().length < MIN_EXTRACTED_CHARS) {
+        onError(t("errPdfNoText"));
+        return;
+      }
       onFileText(text, file.name);
     } catch {
       onError(t("errRead"));
+    } finally {
+      setIsExtracting(false);
     }
   }
 
   function handleDrop(e: DragEvent<HTMLDivElement>) {
     e.preventDefault();
     setIsDragging(false);
-    if (disabled) return;
+    if (isBusy) return;
 
     const file = e.dataTransfer.files?.[0];
     if (file) void handleFile(file);
@@ -58,19 +82,19 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
   return (
     <div
       role="button"
-      tabIndex={disabled ? -1 : 0}
-      aria-disabled={disabled}
+      tabIndex={isBusy ? -1 : 0}
+      aria-disabled={isBusy}
       aria-label={t("uploadAria")}
-      onClick={() => !disabled && inputRef.current?.click()}
+      onClick={() => !isBusy && inputRef.current?.click()}
       onKeyDown={(e) => {
-        if (!disabled && (e.key === "Enter" || e.key === " ")) {
+        if (!isBusy && (e.key === "Enter" || e.key === " ")) {
           e.preventDefault();
           inputRef.current?.click();
         }
       }}
       onDragOver={(e) => {
         e.preventDefault();
-        if (!disabled) setIsDragging(true);
+        if (!isBusy) setIsDragging(true);
       }}
       onDragLeave={() => setIsDragging(false)}
       onDrop={handleDrop}
@@ -80,7 +104,7 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
         isDragging
           ? "border-primary bg-primary/5"
           : "border-border bg-muted/30 hover:border-primary/50 hover:bg-muted/50",
-        disabled && "pointer-events-none opacity-50",
+        isBusy && "pointer-events-none opacity-50",
       )}
     >
       <input
