@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { requireUserId } from "@/lib/auth";
 import { getJobsByUser } from "@/lib/queries/jobs";
@@ -27,21 +28,20 @@ async function JobsContent({ userId }: { userId: string }) {
 
 export default async function JobsPage() {
   const userId = await requireUserId();
+  const t = await getTranslations("jobs");
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Jobs</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Track and manage all your job applications in one place.
-          </p>
+          <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
 
         <Button asChild size="sm" className="shrink-0 gap-2">
           <Link href="/jobs/new">
             <Plus className="h-4 w-4" />
-            New Job
+            {t("newJob")}
           </Link>
         </Button>
       </div>

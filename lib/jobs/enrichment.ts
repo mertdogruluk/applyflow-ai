@@ -4,10 +4,12 @@
 // Artık hem jobs hem matches (Save to my jobs) action'ları kullanıyor.
 
 import { after } from "next/server";
+import { getTranslations } from "next-intl/server";
 
 import { prisma } from "@/lib/prisma";
 import { parseJob } from "@/lib/ai/job-parser";
 import { embedJob } from "@/lib/ai/embeddings";
+import { createNotification } from "@/lib/notifications/create";
 
 /**
  * Response gönderildikten sonra çalışır (after): description'ı parseJob ile
@@ -42,6 +44,27 @@ export function scheduleJobEnrichment(jobId: string, userId: string, reparse: bo
 
     try {
       await embedJob(jobId, userId);
+
+      // Zenginleştirme bitti — ilan artık eşleştirilebilir. Bildirim üretimi
+      // kendi içinde hata yutar, akışı etkilemez.
+      const job = await prisma.job.findFirst({
+        where:  { id: jobId, userId },
+        select: { title: true, company: true },
+      });
+      if (job) {
+        // after() içinde request bağlamı hâlâ okunabilir; yine de çeviri
+        // başarısız olursa İngilizce'ye düş (bildirim asla akışı bozmaz).
+        let title = `"${job.title}" is ready for matching`;
+        let body = `${job.company} — AI indexed the posting in the background.`;
+        try {
+          const t = await getTranslations("notifications");
+          title = t("enrichedTitle", { title: job.title });
+          body = t("enrichedBody", { company: job.company });
+        } catch {
+          /* varsayılan İngilizce metin kalır */
+        }
+        await createNotification(userId, { type: "JOB_ENRICHED", title, body, jobId });
+      }
     } catch (e) {
       console.error(`[jobs] background embedding failed for ${jobId}:`, e);
     }

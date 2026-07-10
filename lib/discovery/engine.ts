@@ -15,7 +15,12 @@ import { prisma } from "@/lib/prisma";
 import { callGeminiJson, GeminiError } from "@/lib/ai/gemini";
 import { CandidateProfileMissingError, MatchEngineError } from "@/lib/ai/match-engine";
 import { fetchRemotiveJobs } from "@/lib/discovery/remotive";
-import type { DiscoveredJob, DiscoveredMatch } from "@/lib/discovery/types";
+import { fetchJSearchJobs } from "@/lib/discovery/jsearch";
+import type {
+  DiscoveredJob,
+  DiscoveredMatch,
+  DiscoveryFilters,
+} from "@/lib/discovery/types";
 
 // ─── Sabitler ────────────────────────────────────────────────────────────────
 
@@ -169,11 +174,18 @@ export interface DiscoveryResult {
  * Dış kaynaklardan gerçek ilanları çekip aday profiline göre puanlar.
  * DB'ye HİÇBİR ŞEY yazmaz — kullanıcı "Save" derse ilan Job'a dönüşür.
  *
+ * Filtreler: source kaynağı seçer (remotive = global remote, jsearch =
+ * Türkiye + yerel), workType çekilen havuzu daraltır, query/location
+ * JSearch sorgusuna geçer. Query boşsa profildeki araçlardan türetilir.
+ *
  * @throws CandidateProfileMissingError — profil hiç yoksa
- * @throws DiscoveryError — kaynak API ulaşılamaz/bozuksa
+ * @throws DiscoveryError — kaynak API ulaşılamaz/bozuksa/yapılandırılmamışsa
  * @throws GeminiError / MatchEngineError — hakem katmanından
  */
-export async function discoverMatchingJobs(userId: string): Promise<DiscoveryResult> {
+export async function discoverMatchingJobs(
+  userId: string,
+  filters?: DiscoveryFilters,
+): Promise<DiscoveryResult> {
   const profile = await prisma.candidateProfile.findUnique({
     where:  { userId },
     select: { coreSkills: true, toolsTech: true, yearsOfExperience: true },
@@ -181,15 +193,39 @@ export async function discoverMatchingJobs(userId: string): Promise<DiscoveryRes
 
   if (!profile) throw new CandidateProfileMissingError();
 
-  // ── Aşama 0: gerçek ilanları çek ──────────────────────────────────────────
-  const pool = await fetchRemotiveJobs();
+  // ── Aşama 0: gerçek ilanları çek (kaynak seçimi) ──────────────────────────
+  const source = filters?.source ?? "remotive";
+  const workType = filters?.workType ?? "ANY";
+
+  let pool: DiscoveredJob[];
+  if (source === "jsearch") {
+    // JSearch query ister — kullanıcı vermezse profildeki en güçlü araçlardan üret.
+    const query =
+      filters?.query?.trim() ||
+      profile.toolsTech.slice(0, 2).join(" ") ||
+      profile.coreSkills[0] ||
+      "software developer";
+    pool = await fetchJSearchJobs({
+      query,
+      location:   filters?.location?.trim() || undefined,
+      remoteOnly: workType === "REMOTE",
+    });
+  } else {
+    pool = await fetchRemotiveJobs();
+  }
+
+  // Çalışma tipi filtresi: kaynak tipi bildirmiyorsa (null) ilan elenmez.
+  const filteredPool =
+    workType === "ANY"
+      ? pool
+      : pool.filter((j) => j.workType === null || j.workType === workType);
 
   // ── Aşama 1: keyword ön eleme ─────────────────────────────────────────────
   const terms = [...profile.toolsTech, ...profile.coreSkills];
-  const shortlist = keywordPrefilter(pool, terms);
+  const shortlist = keywordPrefilter(filteredPool, terms);
 
   if (shortlist.length === 0) {
-    return { matches: [], skipped: 0, poolSize: pool.length };
+    return { matches: [], skipped: 0, poolSize: filteredPool.length };
   }
 
   // ── Aşama 2: hakem (tek batch çağrı) ──────────────────────────────────────
@@ -232,5 +268,5 @@ export async function discoverMatchingJobs(userId: string): Promise<DiscoveryRes
 
   matches.sort((a, b) => b.fitScore - a.fitScore);
 
-  return { matches, skipped, poolSize: pool.length };
+  return { matches, skipped, poolSize: filteredPool.length };
 }

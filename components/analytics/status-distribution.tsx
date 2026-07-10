@@ -1,5 +1,7 @@
 import type { ApplicationStatus } from "@prisma/client";
-import { STATUS_CONFIG, STATUS_OPTIONS } from "@/lib/status";
+import { useTranslations } from "next-intl";
+
+import { STATUS_CONFIG, STATUS_VALUES } from "@/lib/status";
 
 interface Props {
   byStatus: Record<ApplicationStatus, number>;
@@ -7,17 +9,18 @@ interface Props {
 }
 
 export function StatusDistribution({ byStatus, total }: Props) {
+  const t = useTranslations("status");
   const max = Math.max(1, ...Object.values(byStatus));
 
   return (
     <ul className="space-y-2">
-      {STATUS_OPTIONS.map(({ value, label }) => {
+      {STATUS_VALUES.map((value) => {
         const count = byStatus[value];
         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
         const widthPct = (count / max) * 100;
         return (
           <li key={value} className="grid grid-cols-[110px_1fr_auto] items-center gap-3 text-sm">
-            <span className="text-xs text-muted-foreground">{label}</span>
+            <span className="text-xs text-muted-foreground">{t(value)}</span>
             <div className="h-2 overflow-hidden rounded-full bg-muted">
               <div
                 className={`h-full ${STATUS_CONFIG[value].badge}`}

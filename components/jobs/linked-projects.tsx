@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FolderKanban, Plus, X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,8 @@ export function LinkedProjects({
   linkedProjectIds,
   linked,
 }: LinkedProjectsProps) {
+  const t = useTranslations("projects");
+  const tc = useTranslations("common");
   const [picking, setPicking] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export function LinkedProjects({
       await linkProjectToJob(jobId, projectId);
       setPicking(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to link project.");
+      setError(err instanceof Error ? err.message : t("failedLink"));
     } finally {
       setPendingId(null);
     }
@@ -58,7 +61,7 @@ export function LinkedProjects({
     try {
       await unlinkProjectFromJob(jobId, projectId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unlink project.");
+      setError(err instanceof Error ? err.message : t("failedUnlink"));
     } finally {
       setPendingId(null);
     }
@@ -69,7 +72,7 @@ export function LinkedProjects({
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
           <FolderKanban className="h-4 w-4 text-muted-foreground" />
-          Linked Projects
+          {t("linkedTitle")}
         </CardTitle>
         {!picking && (
           <Button
@@ -80,7 +83,7 @@ export function LinkedProjects({
             className="gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            Link
+            {t("link")}
           </Button>
         )}
       </CardHeader>
@@ -94,17 +97,17 @@ export function LinkedProjects({
           <div className="rounded-lg border border-border bg-muted/20 p-3">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-medium text-muted-foreground">
-                Select a project to link
+                {t("pickTitle")}
               </p>
               <Button variant="ghost" size="xs" onClick={() => setPicking(false)}>
-                Cancel
+                {tc("cancel")}
               </Button>
             </div>
             {available.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No more projects to link.{" "}
+                {t("noMore")}{" "}
                 <Link href="/projects/new" className="text-primary hover:underline">
-                  Create a new project
+                  {t("createNew")}
                 </Link>
                 .
               </p>
@@ -131,7 +134,7 @@ export function LinkedProjects({
         {/* Linked list */}
         {linked.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No projects linked yet. Link a project to enrich the AI analysis.
+            {t("noneLinked")}
           </p>
         ) : (
           <ul className="space-y-2">
@@ -162,7 +165,7 @@ export function LinkedProjects({
                   size="icon-sm"
                   onClick={() => handleUnlink(p.id)}
                   disabled={pendingId !== null}
-                  aria-label={`Unlink ${p.name}`}
+                  aria-label={t("unlinkAria", { name: p.name })}
                 >
                   {pendingId === p.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />

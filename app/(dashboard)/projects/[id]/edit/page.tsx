@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { requireUserId } from "@/lib/auth";
 import { getProjectByIdForUser } from "@/lib/queries/projects";
@@ -29,25 +30,26 @@ export default async function EditProjectPage({ params }: Params) {
   };
 
   const action = updateProject.bind(null, id);
+  const t = await getTranslations("projects");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
         <Link href={`/projects/${id}`}>
           <ChevronLeft className="h-4 w-4" />
-          Back to Project
+          {t("backToProject")}
         </Link>
       </Button>
 
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Edit Project</h2>
+        <h2 className="text-xl font-semibold tracking-tight">{t("editTitle")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update the details of <span className="font-medium text-foreground">{project.name}</span>.
+          {t("editSubtitle", { name: project.name })}
         </p>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <ProjectForm action={action} defaultValues={defaults} submitLabel="Save Changes" />
+        <ProjectForm action={action} defaultValues={defaults} submitLabel={t("saveChanges")} />
       </div>
     </div>
   );

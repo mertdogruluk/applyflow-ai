@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { deleteProject } from "@/app/(dashboard)/projects/actions";
@@ -12,6 +13,7 @@ interface DeleteProjectButtonProps {
 }
 
 export function DeleteProjectButton({ projectId, projectName }: DeleteProjectButtonProps) {
+  const t = useTranslations();
   const [open, setOpen] = useState(false);
 
   return (
@@ -23,7 +25,7 @@ export function DeleteProjectButton({ projectId, projectName }: DeleteProjectBut
         onClick={() => setOpen(true)}
       >
         <Trash2 className="h-3.5 w-3.5" />
-        Delete
+        {t("common.delete")}
       </Button>
 
       <ConfirmDialog
@@ -37,9 +39,10 @@ export function DeleteProjectButton({ projectId, projectName }: DeleteProjectBut
             if (!msg.includes("NEXT_REDIRECT")) throw err;
           }
         }}
-        title="Delete this project?"
-        description={`"${projectName}" will be removed from all linked job applications.`}
-        confirmLabel="Delete"
+        title={t("projects.deleteConfirmTitle")}
+        description={t("projects.deleteConfirmDesc", { name: projectName })}
+        confirmLabel={t("common.delete")}
+        cancelLabel={t("common.cancel")}
         destructive
       />
     </>

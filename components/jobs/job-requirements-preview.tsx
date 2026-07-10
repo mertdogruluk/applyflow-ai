@@ -1,6 +1,7 @@
 "use client";
 
 import { ShieldAlert, ThumbsUp, CalendarClock, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { SkillBadgeGroup } from "@/components/profile/skill-badge-group";
 
@@ -23,43 +24,45 @@ export function JobRequirementsPreview({
   minYearsExperience,
   stale,
 }: JobRequirementsPreviewProps) {
+  const t = useTranslations("analyzer");
+
   if (mustHaves.length === 0 && niceToHaves.length === 0) return null;
 
   return (
-    <section className="space-y-4 rounded-xl border bg-muted/30 p-4 sm:p-5">
+    <section className="space-y-5 rounded-xl border border-border bg-muted/40 p-6 sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">AI-extracted requirements</h3>
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">{t("reqTitle")}</h3>
         {typeof minYearsExperience === "number" && (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <CalendarClock className="size-3.5" />
             {minYearsExperience === 0
-              ? "Entry level"
-              : `${minYearsExperience}+ years required`}
+              ? t("entryLevel")
+              : t("yearsRequired", { years: minYearsExperience })}
           </span>
         )}
       </div>
 
       {stale && (
-        <p className="flex items-center gap-1.5 rounded-lg bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-400">
+        <p className="flex items-center gap-1.5 rounded-lg bg-warning/10 px-4 py-2.5 text-xs text-warning">
           <RefreshCw className="size-3.5 shrink-0" />
-          The description changed since the last analysis — re-analyze to refresh these.
+          {t("stale")}
         </p>
       )}
 
       <SkillBadgeGroup
-        title="Must-have requirements"
+        title={t("mustHave")}
         icon={ShieldAlert}
         skills={mustHaves}
         tone="critical"
-        emptyText="No mandatory skills detected."
+        emptyText={t("noMust")}
       />
 
       <SkillBadgeGroup
-        title="Nice to have"
+        title={t("niceToHave")}
         icon={ThumbsUp}
         skills={niceToHaves}
         tone="advantage"
-        emptyText="No bonus skills detected."
+        emptyText={t("noNice")}
       />
     </section>
   );

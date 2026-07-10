@@ -5,7 +5,8 @@ import { z } from "zod";
 // techStack form'da virgüllü string olarak geliyor — DB'ye string[] yazıyoruz.
 
 export const projectFormSchema = z.object({
-  name: z.string().min(1, "Project name is required"),
+  // Hata mesajları i18n anahtarıdır — FieldError bileşeni t() ile çevirir.
+  name: z.string().min(1, "validation.projectNameRequired"),
 
   description: z.string().trim().optional(),
 
@@ -13,14 +14,14 @@ export const projectFormSchema = z.object({
     .string()
     .trim()
     .transform((v) => (v === "" ? undefined : v))
-    .pipe(z.url("Please enter a valid GitHub URL").optional())
+    .pipe(z.url("validation.invalidGithubUrl").optional())
     .optional(),
 
   liveUrl: z
     .string()
     .trim()
     .transform((v) => (v === "" ? undefined : v))
-    .pipe(z.url("Please enter a valid URL").optional())
+    .pipe(z.url("validation.invalidUrl").optional())
     .optional(),
 
   // RHF + zodResolver client tarafında transform'u zaten çalıştırıyor;

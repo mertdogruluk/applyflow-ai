@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { requireUserId } from "@/lib/auth";
 import { getJobByIdForUser } from "@/lib/queries/jobs";
@@ -48,25 +49,26 @@ export default async function EditJobPage({ params }: Params) {
 
   // Server Action partially applied with the job id
   const action = updateJob.bind(null, id);
+  const t = await getTranslations("jobs");
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
         <Link href={`/jobs/${id}`}>
           <ChevronLeft className="h-4 w-4" />
-          Back to Job
+          {t("backToJob")}
         </Link>
       </Button>
 
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Edit Job</h2>
+        <h2 className="text-xl font-semibold tracking-tight">{t("editTitle")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Update the details of <span className="font-medium text-foreground">{job.title}</span>.
+          {t("editSubtitle", { title: job.title })}
         </p>
       </div>
 
       <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
-        <JobForm action={action} defaultValues={defaults} submitLabel="Save Changes" />
+        <JobForm action={action} defaultValues={defaults} submitLabel={t("saveChanges")} />
       </div>
     </div>
   );

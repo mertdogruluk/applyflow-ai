@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { runAnalysis } from "@/lib/ai/analysis";
+import { createNotification } from "@/lib/notifications/create";
 
 // ─── Project link/unlink ─────────────────────────────────────────────────────
 
@@ -101,6 +103,17 @@ export async function generateAnalysis(jobId: string) {
       suggestions: result.recommendedCvBullets,
       rawResult:   result as unknown as object,
     },
+  });
+
+  const t = await getTranslations("notifications");
+  await createNotification(userId, {
+    type:  "ANALYSIS_READY",
+    title: t("analysisTitle", { title: job.title }),
+    body:
+      result.matchScore !== null && result.matchScore !== undefined
+        ? t("analysisBodyScore", { score: result.matchScore })
+        : t("analysisBody"),
+    jobId,
   });
 
   revalidatePath(`/jobs/${jobId}`);

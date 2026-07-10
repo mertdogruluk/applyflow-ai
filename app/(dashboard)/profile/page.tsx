@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 import { getCandidateProfile } from "@/lib/queries/profile";
 import { CvUploadSection } from "@/components/profile/cv-upload-section";
@@ -11,15 +12,13 @@ export default async function ProfilePage() {
   if (!userId) redirect("/sign-in");
 
   const profile = await getCandidateProfile(userId);
+  const t = await getTranslations("profile");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Career Profile</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Upload your CV and let AI extract your skills. This profile powers
-          job matching across ApplyFlow.
-        </p>
+        <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       <CvUploadSection

@@ -1,30 +1,31 @@
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Single skeleton row
 function SkeletonRow() {
   return (
-    <div className="flex items-center gap-4 px-5 py-4">
+    <div className="flex items-center gap-4 px-6 py-5">
       {/* Icon */}
-      <div className="h-10 w-10 shrink-0 animate-pulse rounded-lg bg-muted" />
+      <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
       {/* Text lines */}
       <div className="flex-1 space-y-2">
-        <div className="h-3.5 w-2/5 animate-pulse rounded bg-muted" />
-        <div className="h-3 w-1/4 animate-pulse rounded bg-muted" />
+        <Skeleton className="h-3.5 w-2/5" />
+        <Skeleton className="h-3 w-1/4" />
       </div>
       {/* Date */}
-      <div className="hidden h-3 w-20 animate-pulse rounded bg-muted sm:block" />
+      <Skeleton className="hidden h-3 w-20 sm:block" />
       {/* Badge */}
-      <div className="h-5 w-16 animate-pulse rounded-full bg-muted" />
+      <Skeleton className="h-5 w-16 rounded-4xl" />
     </div>
   );
 }
 
 export function JobsLoading() {
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="gap-0 overflow-hidden p-0">
       {/* Header skeleton */}
-      <div className="border-b border-border bg-muted/30 px-5 py-2.5">
-        <div className="h-3 w-32 animate-pulse rounded bg-muted" />
+      <div className="border-b border-border bg-muted/30 px-6 py-3">
+        <Skeleton className="h-3 w-32" />
       </div>
       {/* Row skeletons */}
       <ul className="divide-y divide-border">

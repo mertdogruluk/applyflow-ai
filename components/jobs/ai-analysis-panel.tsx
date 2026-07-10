@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { AiAnalysis } from "@prisma/client";
+import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateAnalysis } from "@/app/(dashboard)/jobs/[id]/actions";
@@ -23,6 +24,7 @@ interface AiAnalysisPanelProps {
 }
 
 export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
+  const t = useTranslations("aiPanel");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +34,7 @@ export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
     try {
       await generateAnalysis(jobId);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Analysis failed.");
+      setError(err instanceof Error ? err.message : t("analysisFailed"));
     } finally {
       setPending(false);
     }
@@ -42,8 +44,8 @@ export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="flex items-center gap-2 text-base">
-          <Sparkles className="h-4 w-4 text-violet-500" />
-          AI Analysis
+          <Sparkles className="h-4 w-4 text-primary" />
+          {t("title")}
         </CardTitle>
         <Button
           size="sm"
@@ -52,7 +54,7 @@ export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
           className="gap-1.5"
         >
           {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          {analysis ? "Regenerate" : "Generate Analysis"}
+          {analysis ? t("regenerate") : t("generate")}
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -64,11 +66,7 @@ export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
         )}
 
         {!analysis && !error && (
-          <p className="text-sm text-muted-foreground">
-            Generate an AI-powered match analysis for this job. We&apos;ll combine the
-            job description with your linked projects to produce a fit score, CV
-            suggestions, and a draft cover letter.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("intro")}</p>
         )}
 
         {analysis && <AnalysisResult analysis={analysis} />}
@@ -80,6 +78,9 @@ export function AiAnalysisPanel({ jobId, analysis }: AiAnalysisPanelProps) {
 // ─── Result rendering ────────────────────────────────────────────────────────
 
 function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
+  const t = useTranslations("aiPanel");
+  const locale = useLocale();
+
   return (
     <div className="space-y-5">
       {/* Score + summary */}
@@ -92,7 +93,7 @@ function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
             </p>
           )}
           <p className="mt-2 text-[11px] text-muted-foreground">
-            Generated {formatDateTime(analysis.updatedAt)}
+            {t("generated", { date: formatDateTime(analysis.updatedAt, locale) })}
           </p>
         </div>
       </div>
@@ -100,22 +101,22 @@ function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
       {/* Strengths / weaknesses */}
       <div className="grid gap-4 sm:grid-cols-2">
         <BulletList
-          title="Strengths"
-          icon={<CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+          title={t("strengths")}
+          icon={<CheckCircle2 className="h-3.5 w-3.5 text-success" />}
           items={analysis.strengths}
-          empty="No specific strengths identified."
+          empty={t("noStrengths")}
         />
         <BulletList
-          title="Missing keywords"
-          icon={<XCircle className="h-3.5 w-3.5 text-rose-500" />}
+          title={t("missingKeywords")}
+          icon={<XCircle className="h-3.5 w-3.5 text-destructive" />}
           items={analysis.weaknesses}
-          empty="No major gaps detected."
+          empty={t("noGaps")}
         />
       </div>
 
       {/* CV bullets */}
       {analysis.suggestions.length > 0 && (
-        <CopyableList title="Recommended CV bullets" items={analysis.suggestions} />
+        <CopyableList title={t("cvBullets")} items={analysis.suggestions} />
       )}
 
       {/* Cover letter */}
@@ -128,19 +129,21 @@ function AnalysisResult({ analysis }: { analysis: AiAnalysis }) {
 }
 
 function ScoreCircle({ score }: { score: number | null }) {
+  const t = useTranslations("aiPanel");
+
   if (score === null || score === undefined) {
     return (
       <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-border text-xs text-muted-foreground">
-        N/A
+        {t("na")}
       </div>
     );
   }
   const color =
-    score >= 75
-      ? "text-emerald-600 border-emerald-200 bg-emerald-50 dark:bg-emerald-950/40"
+    score >= 80
+      ? "text-success border-success/30 bg-success/10"
       : score >= 50
-        ? "text-amber-600 border-amber-200 bg-amber-50 dark:bg-amber-950/40"
-        : "text-rose-600 border-rose-200 bg-rose-50 dark:bg-rose-950/40";
+        ? "text-warning border-warning/30 bg-warning/10"
+        : "text-destructive border-destructive/30 bg-destructive/10";
   return (
     <div
       className={cn(
@@ -149,7 +152,7 @@ function ScoreCircle({ score }: { score: number | null }) {
       )}
     >
       <span className="text-xl font-bold">{score}</span>
-      <span className="text-[10px] uppercase tracking-wide opacity-70">match</span>
+      <span className="text-[10px] uppercase tracking-wide opacity-70">{t("match")}</span>
     </div>
   );
 }
@@ -202,6 +205,7 @@ function CopyableList({ title, items }: { title: string; items: string[] }) {
 }
 
 function CopyableItem({ text }: { text: string }) {
+  const t = useTranslations("aiPanel");
   const [copied, setCopied] = useState(false);
   return (
     <li className="group flex items-start justify-between gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50">
@@ -214,21 +218,22 @@ function CopyableItem({ text }: { text: string }) {
           setTimeout(() => setCopied(false), 1500);
         }}
         className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-        aria-label="Copy to clipboard"
+        aria-label={t("copyAria")}
       >
-        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
       </button>
     </li>
   );
 }
 
 function CoverLetterBlock({ text }: { text: string }) {
+  const t = useTranslations("aiPanel");
   const [copied, setCopied] = useState(false);
   return (
     <div className="rounded-lg border border-border p-3">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Cover letter draft
+          {t("coverLetterDraft")}
         </p>
         <Button
           variant="ghost"
@@ -242,11 +247,11 @@ function CoverLetterBlock({ text }: { text: string }) {
         >
           {copied ? (
             <>
-              <Check className="h-3 w-3 text-emerald-500" /> Copied
+              <Check className="h-3 w-3 text-success" /> {t("copied")}
             </>
           ) : (
             <>
-              <Copy className="h-3 w-3" /> Copy
+              <Copy className="h-3 w-3" /> {t("copy")}
             </>
           )}
         </Button>

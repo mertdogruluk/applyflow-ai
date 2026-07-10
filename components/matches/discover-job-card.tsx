@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Building2, Check, ExternalLink, Globe, Loader2, Plus, Quote } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -17,6 +18,7 @@ type SaveState = "idle" | "saved" | "already";
  * "Save" — ilanı WISHLIST'e alır, arka planda parse+embed otomatik koşar.
  */
 export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
+  const t = useTranslations("discover");
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -31,6 +33,8 @@ export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
         description: match.description,
         location:    match.location,
         salary:      match.salary,
+        workType:    match.workType,
+        source:      match.source,
       });
       if (result.ok) {
         setSaveState(result.alreadySaved ? "already" : "saved");
@@ -41,11 +45,11 @@ export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
   }
 
   return (
-    <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-lg">
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-1">
-            <h3 className="truncate text-sm leading-snug font-semibold">{match.title}</h3>
+    <Card className="h-full gap-5 py-6 transition-all duration-300 ease-out hover:-translate-y-0.5 hover:shadow-elevated">
+      <CardHeader className="px-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1.5">
+            <h3 className="truncate text-sm leading-snug font-semibold tracking-tight text-foreground">{match.title}</h3>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Building2 className="size-3.5 shrink-0" />
               <span className="truncate">{match.company}</span>
@@ -61,10 +65,10 @@ export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
         </div>
       </CardHeader>
 
-      <CardContent className="mt-auto space-y-2">
-        <figure className="rounded-lg bg-muted px-3 py-2.5">
-          <Quote className="mb-1 size-3 text-muted-foreground/60" />
-          <blockquote className="text-sm text-muted-foreground italic">
+      <CardContent className="mt-auto space-y-2 px-6">
+        <figure className="rounded-lg bg-muted/60 px-4 py-3">
+          <Quote className="mb-1.5 size-3 text-muted-foreground/50" />
+          <blockquote className="text-sm leading-relaxed text-muted-foreground italic">
             {match.reasoning}
           </blockquote>
         </figure>
@@ -75,11 +79,11 @@ export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
         )}
       </CardContent>
 
-      <CardFooter className="justify-between gap-2">
+      <CardFooter className="justify-between gap-2 px-6">
         <Button asChild variant="ghost" size="sm">
           <a href={match.url} target="_blank" rel="noopener noreferrer">
             <ExternalLink data-icon="inline-start" />
-            View posting
+            {t("viewPosting")}
           </a>
         </Button>
 
@@ -88,19 +92,19 @@ export function DiscoverJobCard({ match }: { match: DiscoveredMatch }) {
             {isPending ? (
               <>
                 <Loader2 data-icon="inline-start" className="animate-spin" />
-                Saving…
+                {t("savingBtn")}
               </>
             ) : (
               <>
                 <Plus data-icon="inline-start" />
-                Save to my jobs
+                {t("save")}
               </>
             )}
           </Button>
         ) : (
-          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="flex items-center gap-1.5 text-xs font-medium text-success">
             <Check className="size-3.5" />
-            {saveState === "already" ? "Already in your jobs" : "Saved to wishlist"}
+            {saveState === "already" ? t("alreadySaved") : t("savedWishlist")}
           </span>
         )}
       </CardFooter>

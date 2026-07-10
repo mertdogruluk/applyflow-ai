@@ -1,5 +1,7 @@
 import { Sparkles, Star, Wrench, CalendarClock } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
+import { formatDate } from "@/lib/format";
 import {
   Card,
   CardContent,
@@ -23,6 +25,8 @@ export interface ProfileSummaryData {
  * core_skills → primary rozet (mavi), tools_and_tech → secondary rozet (gri).
  */
 export function ProfileSummaryCard({ profile }: { profile: ProfileSummaryData }) {
+  const t = useTranslations("profile");
+  const locale = useLocale();
   const years = profile.yearsOfExperience;
 
   return (
@@ -30,12 +34,12 @@ export function ProfileSummaryCard({ profile }: { profile: ProfileSummaryData })
       <CardHeader className="border-b">
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="size-4 text-primary" />
-          AI Profile Summary
+          {t("summaryTitle")}
         </CardTitle>
         <CardDescription>
           {profile.updatedAt
-            ? `Extracted from your CV · last updated ${profile.updatedAt.toLocaleDateString()}`
-            : "Freshly extracted from your CV."}
+            ? t("summarySavedDesc", { date: formatDate(profile.updatedAt, locale) })
+            : t("summaryFreshDesc")}
         </CardDescription>
       </CardHeader>
 
@@ -43,26 +47,26 @@ export function ProfileSummaryCard({ profile }: { profile: ProfileSummaryData })
         <div className="flex items-center gap-2 text-sm">
           <CalendarClock className="size-4 text-muted-foreground" />
           <span className="font-medium">
-            {years === 0 ? "Experience not stated" : `${years} ${years === 1 ? "year" : "years"} of experience`}
+            {years === 0 ? t("expNone") : t("expYears", { years })}
           </span>
         </div>
 
         <Separator />
 
         <SkillBadgeGroup
-          title="Core skills"
+          title={t("coreSkills")}
           icon={Star}
           skills={profile.coreSkills}
           tone="primary"
-          emptyText="No high-level skills were found in the CV."
+          emptyText={t("noCoreSkills")}
         />
 
         <SkillBadgeGroup
-          title="Tools & technologies"
+          title={t("toolsTech")}
           icon={Wrench}
           skills={profile.toolsTech}
           tone="muted"
-          emptyText="No specific tools were found in the CV."
+          emptyText={t("noTools")}
         />
       </CardContent>
     </Card>

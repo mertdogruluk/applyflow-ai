@@ -36,8 +36,9 @@ interface RemotiveResponse {
  * HTML açıklamayı düz metne indirger: script/style blokları atılır,
  * blok elemanları satır sonuna çevrilir, kalan tag'ler temizlenir,
  * yaygın entity'ler çözülür. Judge prompt'u ve DB kaydı bu metni kullanır.
+ * Export: jsearch.ts de aynı temizliği kullanır.
  */
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<\/(p|div|li|h[1-6]|tr)>/gi, "\n")
@@ -93,5 +94,6 @@ export async function fetchRemotiveJobs(): Promise<DiscoveredJob[]> {
     tags:        Array.isArray(j.tags) ? j.tags : [],
     salary:      j.salary || null,
     publishedAt: j.publication_date || null,
+    workType:    "REMOTE" as const, // Remotive = yalnızca remote ilanlar
   }));
 }

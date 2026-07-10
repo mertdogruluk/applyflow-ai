@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import { cn } from "@/lib/utils";
 
 /**
@@ -5,26 +7,27 @@ import { cn } from "@/lib/utils";
  *   ≥ 80  yeşil (güçlü eşleşme)
  *   50-79 sarı/amber (orta)
  *   < 50  kırmızı (zayıf)
+ * Etiketler i18n anahtarıdır — render'da çevrilir.
  */
 function getScoreTone(score: number) {
   if (score >= 80) {
     return {
-      ring:  "stroke-emerald-500",
-      text:  "text-emerald-600 dark:text-emerald-400",
-      label: "Strong match",
+      ring:     "stroke-success",
+      text:     "text-success",
+      labelKey: "ringStrong" as const,
     };
   }
   if (score >= 50) {
     return {
-      ring:  "stroke-amber-500",
-      text:  "text-amber-600 dark:text-amber-400",
-      label: "Moderate match",
+      ring:     "stroke-warning",
+      text:     "text-warning",
+      labelKey: "ringModerate" as const,
     };
   }
   return {
-    ring:  "stroke-red-500",
-    text:  "text-red-600 dark:text-red-400",
-    label: "Weak match",
+    ring:     "stroke-destructive",
+    text:     "text-destructive",
+    labelKey: "ringWeak" as const,
   };
 }
 
@@ -43,6 +46,7 @@ interface MatchScoreRingProps {
  * kart ekrana geldiğinde halka animasyonla dolar.
  */
 export function MatchScoreRing({ score, className }: MatchScoreRingProps) {
+  const t = useTranslations("matches");
   const clamped = Math.max(0, Math.min(100, Math.round(score)));
   const tone = getScoreTone(clamped);
   const offset = CIRCUMFERENCE * (1 - clamped / 100);
@@ -55,7 +59,7 @@ export function MatchScoreRing({ score, className }: MatchScoreRingProps) {
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-label={`Match score: ${clamped} out of 100`}
+        aria-label={t("ringAria", { score: clamped })}
       >
         <svg viewBox="0 0 80 80" className="size-full -rotate-90">
           <circle
@@ -90,7 +94,7 @@ export function MatchScoreRing({ score, className }: MatchScoreRingProps) {
           {clamped}
         </span>
       </div>
-      <span className="text-xs font-medium text-muted-foreground">{tone.label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{t(tone.labelKey)}</span>
     </div>
   );
 }
