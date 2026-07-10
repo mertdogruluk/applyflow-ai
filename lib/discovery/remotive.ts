@@ -36,7 +36,7 @@ interface RemotiveResponse {
  * HTML açıklamayı düz metne indirger: script/style blokları atılır,
  * blok elemanları satır sonuna çevrilir, kalan tag'ler temizlenir,
  * yaygın entity'ler çözülür. Judge prompt'u ve DB kaydı bu metni kullanır.
- * Export: jsearch.ts de aynı temizliği kullanır.
+ * Export: jooble.ts de aynı temizliği kullanır.
  */
 export function stripHtml(html: string): string {
   return html

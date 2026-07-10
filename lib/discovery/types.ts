@@ -1,10 +1,10 @@
 // Keşif (Discovery) katmanının kaynak-bağımsız tipleri.
-// Kaynaklar (Remotive, JSearch) aynı DiscoveredJob şekline map edilir —
+// Kaynaklar (Remotive, Jooble) aynı DiscoveredJob şekline map edilir —
 // engine ve UI kaynaktan bağımsız kalır.
 
 import type { WorkType } from "@prisma/client";
 
-export type DiscoverySource = "remotive" | "jsearch";
+export type DiscoverySource = "remotive" | "jooble";
 
 /** Dış kaynaktan çekilmiş, normalize edilmiş gerçek ilan. */
 export interface DiscoveredJob {
@@ -39,7 +39,7 @@ export interface DiscoveryFilters {
   source:    DiscoverySource;
   /** Serbest arama terimi; boşsa profil becerilerinden türetilir. */
   query?:    string;
-  /** Şehir/bölge (yalnızca JSearch anlamlandırır, örn. "Istanbul"). */
+  /** Şehir/bölge (yalnızca Jooble anlamlandırır, örn. "Istanbul"). */
   location?: string;
   /** Çalışma tipi filtresi; "ANY" = filtre yok. */
   workType?: WorkType | "ANY";

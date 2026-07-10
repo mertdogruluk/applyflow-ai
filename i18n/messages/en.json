@@ -226,7 +226,7 @@
     "savingBtn": "Saving…",
     "savedWishlist": "Saved to wishlist",
     "alreadySaved": "Already in your jobs",
-    "notConfigured": "Türkiye job search is not configured — add RAPIDAPI_KEY to your .env (free key from rapidapi.com, JSearch API)."
+    "notConfigured": "Türkiye job search is not configured — add JOOBLE_API_KEY to your .env (free key from jooble.org/api/about)."
   },
   "aiPanel": {
     "title": "AI Analysis",
@@ -261,10 +261,11 @@
     "dragDrop": "Drag & drop your CV",
     "or": "or",
     "browse": "browse files",
-    "fileHint": ".txt or .md — PDF support coming soon",
+    "fileHint": ".txt, .md or .pdf (max 10 MB)",
     "uploadAria": "Upload CV file",
-    "errOnlyText": "Only plain-text files (.txt, .md) are supported for now — PDF support is coming. You can also paste your CV text instead.",
-    "errTooLarge": "File is too large (max 200 KB). CVs are text — this should be plenty.",
+    "errOnlyText": "Only .txt, .md and .pdf files are supported. You can also paste your CV text instead.",
+    "errTooLarge": "File is too large — the limit is 200 KB for text files and 10 MB for PDFs.",
+    "errPdfNoText": "No text could be extracted from this PDF (it may be scanned/image-based) — try pasting your CV text instead.",
     "errRead": "Could not read the file. Please try again or paste the text.",
     "summaryTitle": "AI Profile Summary",
     "summarySavedDesc": "Extracted from your CV · last updated {date}",

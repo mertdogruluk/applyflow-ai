@@ -15,7 +15,7 @@ import { prisma } from "@/lib/prisma";
 import { callGeminiJson, GeminiError } from "@/lib/ai/gemini";
 import { CandidateProfileMissingError, MatchEngineError } from "@/lib/ai/match-engine";
 import { fetchRemotiveJobs } from "@/lib/discovery/remotive";
-import { fetchJSearchJobs } from "@/lib/discovery/jsearch";
+import { fetchJoobleJobs } from "@/lib/discovery/jooble";
 import type {
   DiscoveredJob,
   DiscoveredMatch,
@@ -174,9 +174,9 @@ export interface DiscoveryResult {
  * Dış kaynaklardan gerçek ilanları çekip aday profiline göre puanlar.
  * DB'ye HİÇBİR ŞEY yazmaz — kullanıcı "Save" derse ilan Job'a dönüşür.
  *
- * Filtreler: source kaynağı seçer (remotive = global remote, jsearch =
+ * Filtreler: source kaynağı seçer (remotive = global remote, jooble =
  * Türkiye + yerel), workType çekilen havuzu daraltır, query/location
- * JSearch sorgusuna geçer. Query boşsa profildeki araçlardan türetilir.
+ * Jooble sorgusuna geçer. Query boşsa profildeki araçlardan türetilir.
  *
  * @throws CandidateProfileMissingError — profil hiç yoksa
  * @throws DiscoveryError — kaynak API ulaşılamaz/bozuksa/yapılandırılmamışsa
@@ -198,14 +198,14 @@ export async function discoverMatchingJobs(
   const workType = filters?.workType ?? "ANY";
 
   let pool: DiscoveredJob[];
-  if (source === "jsearch") {
-    // JSearch query ister — kullanıcı vermezse profildeki en güçlü araçlardan üret.
+  if (source === "jooble") {
+    // Jooble keywords ister — kullanıcı vermezse profildeki en güçlü araçlardan üret.
     const query =
       filters?.query?.trim() ||
       profile.toolsTech.slice(0, 2).join(" ") ||
       profile.coreSkills[0] ||
       "software developer";
-    pool = await fetchJSearchJobs({
+    pool = await fetchJoobleJobs({
       query,
       location:   filters?.location?.trim() || undefined,
       remoteOnly: workType === "REMOTE",

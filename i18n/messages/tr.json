@@ -226,7 +226,7 @@
     "savingBtn": "Kaydediliyor…",
     "savedWishlist": "İstek listesine kaydedildi",
     "alreadySaved": "Zaten ilanlarında",
-    "notConfigured": "Türkiye iş araması yapılandırılmadı — etkinleştirmek için .env dosyana RAPIDAPI_KEY ekle (rapidapi.com'dan ücretsiz JSearch anahtarı)."
+    "notConfigured": "Türkiye iş araması yapılandırılmadı — etkinleştirmek için .env dosyana JOOBLE_API_KEY ekle (jooble.org/api/about adresinden ücretsiz anahtar)."
   },
   "aiPanel": {
     "title": "AI Analizi",
@@ -261,10 +261,11 @@
     "dragDrop": "CV'ni sürükle-bırak",
     "or": "veya",
     "browse": "dosya seç",
-    "fileHint": ".txt veya .md — PDF desteği yakında",
+    "fileHint": ".txt, .md veya .pdf (en fazla 10 MB)",
     "uploadAria": "CV dosyası yükle",
-    "errOnlyText": "Şimdilik yalnızca düz metin dosyaları (.txt, .md) destekleniyor — PDF desteği yolda. CV metnini yapıştırmayı da deneyebilirsin.",
-    "errTooLarge": "Dosya çok büyük (en fazla 200 KB). CV'ler metindir — bu fazlasıyla yeterli.",
+    "errOnlyText": "Yalnızca .txt, .md ve .pdf dosyaları destekleniyor. CV metnini yapıştırmayı da deneyebilirsin.",
+    "errTooLarge": "Dosya çok büyük — sınır metin dosyaları için 200 KB, PDF için 10 MB.",
+    "errPdfNoText": "Bu PDF'ten metin çıkarılamadı (taranmış/görüntü PDF olabilir) — CV metnini yapıştırmayı dene.",
     "errRead": "Dosya okunamadı. Tekrar dene veya metni yapıştır.",
     "summaryTitle": "AI Profil Özeti",
     "summarySavedDesc": "CV'nden çıkarıldı · son güncelleme {date}",
