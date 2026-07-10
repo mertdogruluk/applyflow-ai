@@ -1,5 +1,6 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Mail, User, KeyRound } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,14 +18,13 @@ export default async function SettingsPage() {
   const name = user?.fullName ?? user?.username ?? "—";
   const initials =
     (user?.firstName?.[0] ?? "") + (user?.lastName?.[0] ?? "") || "U";
+  const t = await getTranslations("settings");
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Settings</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your account and AI integration details.
-        </p>
+        <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {/* Profile */}
@@ -32,7 +32,7 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <User className="h-4 w-4 text-muted-foreground" />
-            Profile
+            {t("profileCard")}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex items-center gap-4">
@@ -47,8 +47,7 @@ export default async function SettingsPage() {
               {email}
             </p>
             <p className="mt-1 text-[11px] text-muted-foreground">
-              Profile is managed via Clerk. Use the user menu in the top bar to
-              update your name, email, or password.
+              {t("managedByClerk")}
             </p>
           </div>
         </CardContent>
@@ -59,35 +58,27 @@ export default async function SettingsPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <KeyRound className="h-4 w-4 text-muted-foreground" />
-            AI Integration
+            {t("aiIntegration")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-sm">Gemini API</p>
+            <p className="text-sm">{t("geminiApi")}</p>
             <Badge variant={process.env.GEMINI_API_KEY ? "default" : "secondary"}>
-              {process.env.GEMINI_API_KEY ? "Connected" : "Not configured"}
+              {process.env.GEMINI_API_KEY ? t("connected") : t("notConfigured")}
             </Badge>
           </div>
-          <p className="text-xs text-muted-foreground">
-            The AI analysis feature uses Google Gemini server-side. Your key is read
-            from the <code className="rounded bg-muted px-1 py-0.5">GEMINI_API_KEY</code>{" "}
-            environment variable and never exposed to the browser.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("aiDesc")}</p>
         </CardContent>
       </Card>
 
       {/* About */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">About</CardTitle>
+          <CardTitle className="text-base">{t("about")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>
-            <span className="font-medium text-foreground">ApplyFlow AI</span> — your
-            personal AI-powered job application tracker. Built with Next.js,
-            Prisma, Clerk, and Gemini.
-          </p>
+          <p>{t("aboutText")}</p>
         </CardContent>
       </Card>
     </div>

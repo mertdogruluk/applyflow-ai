@@ -1,10 +1,14 @@
 "use client";
 
-import { Bell, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { navItems } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { LanguageToggle } from "@/components/layout/language-toggle";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { useAuth, UserButton } from "@clerk/nextjs";
 
 interface TopbarProps {
@@ -15,23 +19,25 @@ interface TopbarProps {
 export function Topbar({ sidebarOpen, onToggleSidebar }: TopbarProps) {
   const pathname = usePathname();
   const { isSignedIn } = useAuth();
+  const t = useTranslations();
 
-  const currentPage =
+  const currentKey =
     navItems.find(
       (item) =>
         pathname === item.href ||
         (item.href !== "/dashboard" && pathname.startsWith(item.href))
-    )?.label ?? "Dashboard";
+    )?.key ?? "dashboard";
+  const currentPage = t(`nav.${currentKey}`);
 
   return (
-    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center border-b border-border bg-background/80 backdrop-blur-sm px-4 gap-4">
+    <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-4 border-b border-border/70 bg-background/65 px-4 backdrop-blur-xl">
       {/* Mobile hamburger */}
       <Button
         variant="ghost"
         size="icon"
         className="md:hidden"
         onClick={onToggleSidebar}
-        aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+        aria-label={sidebarOpen ? t("common.closeSidebar") : t("common.openSidebar")}
       >
         {sidebarOpen ? (
           <X className="h-5 w-5" />
@@ -50,16 +56,11 @@ export function Topbar({ sidebarOpen, onToggleSidebar }: TopbarProps) {
       <Separator orientation="vertical" className="h-6" />
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative text-muted-foreground hover:text-foreground"
-          aria-label="Notifications"
-        >
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-        </Button>
+      <div className="flex items-center gap-1">
+        <LanguageToggle />
+        <ThemeToggle />
+
+        <NotificationBell />
 
         {isSignedIn && (
           <UserButton

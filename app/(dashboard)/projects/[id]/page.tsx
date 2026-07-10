@@ -8,6 +8,8 @@ import {
   Briefcase,
 } from "lucide-react";
 
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { requireUserId } from "@/lib/auth";
 import { getProjectByIdForUser } from "@/lib/queries/projects";
 import { Button } from "@/components/ui/button";
@@ -28,13 +30,16 @@ export default async function ProjectDetailPage({ params }: Params) {
   const project = await getProjectByIdForUser(id, userId);
   if (!project) notFound();
 
+  const t = await getTranslations();
+  const locale = await getLocale();
+
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex items-center justify-between gap-3">
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
           <Link href="/projects">
             <ChevronLeft className="h-4 w-4" />
-            Back to Projects
+            {t("projects.backToProjects")}
           </Link>
         </Button>
 
@@ -42,7 +47,7 @@ export default async function ProjectDetailPage({ params }: Params) {
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <Link href={`/projects/${project.id}/edit`}>
               <Pencil className="h-3.5 w-3.5" />
-              Edit
+              {t("common.edit")}
             </Link>
           </Button>
           <DeleteProjectButton projectId={project.id} projectName={project.name} />
@@ -77,11 +82,11 @@ export default async function ProjectDetailPage({ params }: Params) {
                 className="inline-flex items-center gap-1.5 text-primary hover:underline"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                Live demo
+                {t("projects.liveDemo")}
               </a>
             )}
             <span className="text-xs text-muted-foreground">
-              · Updated {formatDate(project.updatedAt)}
+              · {t("projects.updated", { date: formatDate(project.updatedAt, locale) })}
             </span>
           </div>
 
@@ -101,14 +106,13 @@ export default async function ProjectDetailPage({ params }: Params) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <Briefcase className="h-4 w-4 text-muted-foreground" />
-            Linked Jobs ({project.jobs.length})
+            {t("projects.linkedJobs", { count: project.jobs.length })}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {project.jobs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No jobs link this project yet. Open a job and link it from the
-              &ldquo;Linked Projects&rdquo; section.
+              {t("projects.noLinkedJobs")}
             </p>
           ) : (
             <ul className="divide-y divide-border">

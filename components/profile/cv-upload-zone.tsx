@@ -2,6 +2,7 @@
 
 import { useRef, useState, type DragEvent } from "react";
 import { CloudUpload, FileText } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { cn } from "@/lib/utils";
 
@@ -22,19 +23,18 @@ interface CvUploadZoneProps {
  * Yalnızca düz metin dosyaları (.txt/.md) — PDF çıkarımı ayrı bir faz.
  */
 export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProps) {
+  const t = useTranslations("profile");
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   async function handleFile(file: File) {
     const name = file.name.toLowerCase();
     if (!ACCEPTED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
-      onError(
-        "Only plain-text files (.txt, .md) are supported for now — PDF support is coming. You can also paste your CV text instead.",
-      );
+      onError(t("errOnlyText"));
       return;
     }
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      onError("File is too large (max 200 KB). CVs are text — this should be plenty.");
+      onError(t("errTooLarge"));
       return;
     }
 
@@ -42,7 +42,7 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
       const text = await file.text();
       onFileText(text, file.name);
     } catch {
-      onError("Could not read the file. Please try again or paste the text.");
+      onError(t("errRead"));
     }
   }
 
@@ -60,7 +60,7 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
       role="button"
       tabIndex={disabled ? -1 : 0}
       aria-disabled={disabled}
-      aria-label="Upload CV file"
+      aria-label={t("uploadAria")}
       onClick={() => !disabled && inputRef.current?.click()}
       onKeyDown={(e) => {
         if (!disabled && (e.key === "Enter" || e.key === " ")) {
@@ -106,16 +106,16 @@ export function CvUploadZone({ disabled, onFileText, onError }: CvUploadZoneProp
 
       <div className="space-y-1">
         <p className="text-sm font-medium">
-          {isDragging ? "Drop your CV here" : "Drag & drop your CV"}
+          {isDragging ? t("dropHere") : t("dragDrop")}
         </p>
         <p className="text-xs text-muted-foreground">
-          or <span className="font-medium text-primary">browse files</span>
+          {t("or")} <span className="font-medium text-primary">{t("browse")}</span>
         </p>
       </div>
 
       <p className="flex items-center gap-1 text-xs text-muted-foreground">
         <FileText className="size-3" />
-        .txt or .md — PDF support coming soon
+        {t("fileHint")}
       </p>
     </div>
   );

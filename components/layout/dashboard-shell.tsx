@@ -16,7 +16,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         />
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="aurora-canvas relative flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>

@@ -9,46 +9,22 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+/**
+ * Nav öğeleri artık görüntü etiketi taşımaz — `key`, i18n kataloğundaki
+ * `nav.<key>` girdisine işaret eder. Aktiflik/routing href üzerinden yürür.
+ */
 export interface NavItem {
-  label: string;
+  key: "dashboard" | "jobs" | "projects" | "matches" | "analytics" | "profile" | "settings";
   href: string;
   icon: LucideIcon;
 }
 
 export const navItems: NavItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Jobs",
-    href: "/jobs",
-    icon: Briefcase,
-  },
-  {
-    label: "Projects",
-    href: "/projects",
-    icon: FolderKanban,
-  },
-  {
-    label: "Matches",
-    href: "/matches",
-    icon: Target,
-  },
-  {
-    label: "Analytics",
-    href: "/analytics",
-    icon: BarChart3,
-  },
-  {
-    label: "Profile",
-    href: "/profile",
-    icon: UserRound,
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    icon: Settings,
-  },
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "jobs",      href: "/jobs",      icon: Briefcase },
+  { key: "projects",  href: "/projects",  icon: FolderKanban },
+  { key: "matches",   href: "/matches",   icon: Target },
+  { key: "analytics", href: "/analytics", icon: BarChart3 },
+  { key: "profile",   href: "/profile",   icon: UserRound },
+  { key: "settings",  href: "/settings",  icon: Settings },
 ];

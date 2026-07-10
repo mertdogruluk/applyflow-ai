@@ -2,40 +2,39 @@ import { z } from "zod";
 import { ApplicationStatus, WorkType, JobType } from "@prisma/client";
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
+// Etiketler i18n kataloğunda (`status.*`, `workType.*`, `jobType.*`) —
+// burada yalnızca kararlı enum değerleri ve sıraları tutulur.
 
-export const APPLICATION_STATUS_OPTIONS: { value: ApplicationStatus; label: string }[] = [
-  { value: "WISHLIST",   label: "Wishlist" },
-  { value: "APPLIED",    label: "Applied" },
-  { value: "ASSESSMENT", label: "Assessment" },
-  { value: "INTERVIEW",  label: "Interview" },
-  { value: "OFFER",      label: "Offer" },
-  { value: "ACCEPTED",   label: "Accepted" },
-  { value: "REJECTED",   label: "Rejected" },
-  { value: "WITHDRAWN",  label: "Withdrawn" },
+export const APPLICATION_STATUS_VALUES: ApplicationStatus[] = [
+  "WISHLIST",
+  "APPLIED",
+  "ASSESSMENT",
+  "INTERVIEW",
+  "OFFER",
+  "ACCEPTED",
+  "REJECTED",
+  "WITHDRAWN",
 ];
 
-export const WORK_TYPE_OPTIONS: { value: WorkType; label: string }[] = [
-  { value: "REMOTE",  label: "Remote" },
-  { value: "HYBRID",  label: "Hybrid" },
-  { value: "ON_SITE", label: "On-site" },
-];
+export const WORK_TYPE_VALUES: WorkType[] = ["REMOTE", "HYBRID", "ON_SITE"];
 
-export const JOB_TYPE_OPTIONS: { value: JobType; label: string }[] = [
-  { value: "FULL_TIME",  label: "Full-time" },
-  { value: "PART_TIME",  label: "Part-time" },
-  { value: "INTERNSHIP", label: "Internship" },
-  { value: "CONTRACT",   label: "Contract" },
-  { value: "FREELANCE",  label: "Freelance" },
+export const JOB_TYPE_VALUES: JobType[] = [
+  "FULL_TIME",
+  "PART_TIME",
+  "INTERNSHIP",
+  "CONTRACT",
+  "FREELANCE",
 ];
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 export const jobFormSchema = z.object({
   // Zorunlu alanlar
-  title:   z.string().min(1, "Job title is required"),
-  company: z.string().min(1, "Company name is required"),
+  // Hata mesajları i18n anahtarıdır — FieldError bileşeni t() ile çevirir.
+  title:   z.string().min(1, "validation.titleRequired"),
+  company: z.string().min(1, "validation.companyRequired"),
   status:  z.nativeEnum(ApplicationStatus, {
-    error: "Status is required",
+    error: "validation.statusRequired",
   }),
 
   // Opsiyonel — URL boşsa undefined kabul et, doluysa geçerli URL olmalı
@@ -43,7 +42,7 @@ export const jobFormSchema = z.object({
     .string()
     .trim()
     .transform((v) => (v === "" ? undefined : v))
-    .pipe(z.url("Please enter a valid URL (e.g. https://...)").optional())
+    .pipe(z.url("validation.invalidUrl").optional())
     .optional(),
 
   // Opsiyonel string alanlar

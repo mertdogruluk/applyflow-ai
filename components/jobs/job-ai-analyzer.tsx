@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, Sparkles, TriangleAlert, CheckCircle2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +21,7 @@ interface JobAiAnalyzerProps {
  * bu bir form alanı değil, analiz girdisidir.
  */
 export function JobAiAnalyzer({ onAnalyzed }: JobAiAnalyzerProps) {
+  const t = useTranslations("analyzer");
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [analyzedOnce, setAnalyzedOnce] = useState(false);
@@ -39,45 +41,45 @@ export function JobAiAnalyzer({ onAnalyzed }: JobAiAnalyzerProps) {
   }
 
   return (
-    <section className="rounded-xl border bg-gradient-to-b from-primary/5 to-transparent p-4 sm:p-5">
-      <div className="mb-3 flex items-center gap-2">
-        <Sparkles className="size-4 text-primary" />
-        <h3 className="text-sm font-semibold">Smart fill with AI</h3>
-        <span className="text-xs text-muted-foreground">— paste the posting, we extract the requirements</span>
+    <section className="rounded-xl border border-border bg-muted/40 p-6 sm:p-8">
+      <div className="mb-4 flex items-center gap-2">
+        <Sparkles className="size-4 text-primary/80" />
+        <h3 className="text-sm font-semibold tracking-tight text-foreground">{t("title")}</h3>
+        <span className="text-xs text-muted-foreground">{t("hint")}</span>
       </div>
 
       <Textarea
         value={rawText}
         onChange={(e) => setRawText(e.target.value)}
         disabled={isPending}
-        placeholder="Paste the full job posting here…"
+        placeholder={t("placeholder")}
         className="min-h-32 resize-y bg-background"
       />
 
-      <div className="mt-3 flex items-center gap-3">
+      <div className="mt-4 flex items-center gap-3">
         <Button
           type="button"
           disabled={isPending || rawText.trim().length === 0}
           onClick={handleAnalyze}
-          className="group relative overflow-hidden rounded-full px-5 before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-full"
+          className="rounded-full px-5 transition-all duration-300 ease-out hover:bg-primary/90"
         >
           {isPending ? (
             <>
               <Loader2 data-icon="inline-start" className="animate-spin" />
-              Analyzing…
+              {t("analyzing")}
             </>
           ) : (
             <>
               <Sparkles data-icon="inline-start" />
-              Analyze with AI
+              {t("analyzeCta")}
             </>
           )}
         </Button>
 
         {analyzedOnce && !isPending && !error && (
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CheckCircle2 className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-            Requirements extracted — review them below, then save.
+            <CheckCircle2 className="size-3.5 text-success" />
+            {t("success")}
           </span>
         )}
       </div>
@@ -85,7 +87,7 @@ export function JobAiAnalyzer({ onAnalyzed }: JobAiAnalyzerProps) {
       {error && (
         <div
           role="alert"
-          className="mt-3 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           {error}

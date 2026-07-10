@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,9 +22,9 @@ import {
   jobFormSchema,
   type JobFormValues,
   type JobFormOutput,
-  APPLICATION_STATUS_OPTIONS,
-  WORK_TYPE_OPTIONS,
-  JOB_TYPE_OPTIONS,
+  APPLICATION_STATUS_VALUES,
+  WORK_TYPE_VALUES,
+  JOB_TYPE_VALUES,
 } from "@/lib/validations/job";
 import { JobAiAnalyzer } from "@/components/jobs/job-ai-analyzer";
 import { JobRequirementsPreview } from "@/components/jobs/job-requirements-preview";
@@ -43,11 +44,13 @@ interface JobFormProps {
 // ─── Field helpers ────────────────────────────────────────────────────────────
 
 function FieldError({ message }: { message?: string }) {
+  // Zod mesajları i18n anahtarıdır ("validation.x") — burada çevrilir.
+  const t = useTranslations();
   if (!message) return null;
   return (
     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
       <AlertCircle className="h-3 w-3 shrink-0" />
-      {message}
+      {message.startsWith("validation.") ? t(message) : message}
     </p>
   );
 }
@@ -60,10 +63,10 @@ function FormField({ children, className }: { children: React.ReactNode; classNa
 
 function SectionHeader({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="mb-4 border-b border-border pb-3">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+    <div className="mb-6 border-b border-border pb-4">
+      <h3 className="text-sm font-semibold tracking-tight text-foreground">{title}</h3>
       {description && (
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{description}</p>
       )}
     </div>
   );
@@ -71,7 +74,8 @@ function SectionHeader({ title, description }: { title: string; description?: st
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: JobFormProps) {
+export function JobForm({ defaultValues, action, submitLabel }: JobFormProps) {
+  const t = useTranslations();
   const [serverError, setServerError] = useState<string | null>(null);
   // Son analizin kaynak metni — description sonradan elle değişirse
   // rozet panelinde "bayat" uyarısı göstermek için.
@@ -123,7 +127,7 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
     try {
       await action(payload);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      const msg = err instanceof Error ? err.message : t("common.genericError");
       // Server redirect hataları "NEXT_REDIRECT" içerir — onları gösterme
       if (!msg.includes("NEXT_REDIRECT")) {
         setServerError(msg);
@@ -147,17 +151,17 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
       {/* ── Section 1: Core Info ──────────────────────────────────────────── */}
       <section>
         <SectionHeader
-          title="Core Information"
-          description="Required fields to identify the position."
+          title={t("jobForm.sectionCore")}
+          description={t("jobForm.sectionCoreDesc")}
         />
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <FormField className="flex flex-col gap-1.5 sm:col-span-2">
             <Label htmlFor="title">
-              Job Title <span className="text-destructive">*</span>
+              {t("jobForm.jobTitle")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="title"
-              placeholder="e.g. Frontend Developer"
+              placeholder={t("jobForm.phTitle")}
               aria-invalid={!!errors.title}
               {...register("title")}
             />
@@ -166,11 +170,11 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
 
           <FormField>
             <Label htmlFor="company">
-              Company <span className="text-destructive">*</span>
+              {t("jobForm.company")} <span className="text-destructive">*</span>
             </Label>
             <Input
               id="company"
-              placeholder="e.g. Acme Corp"
+              placeholder={t("jobForm.phCompany")}
               aria-invalid={!!errors.company}
               {...register("company")}
             />
@@ -179,19 +183,19 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
 
           <FormField>
             <Label htmlFor="status">
-              Status <span className="text-destructive">*</span>
+              {t("jobForm.status")} <span className="text-destructive">*</span>
             </Label>
             <Select
               defaultValue={defaultValues?.status ?? "WISHLIST"}
               onValueChange={(v) => setValue("status", v as JobFormValues["status"], { shouldValidate: true })}
             >
               <SelectTrigger id="status" aria-invalid={!!errors.status}>
-                <SelectValue placeholder="Select status" />
+                <SelectValue placeholder={t("jobForm.selectStatus")} />
               </SelectTrigger>
               <SelectContent>
-                {APPLICATION_STATUS_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {APPLICATION_STATUS_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`status.${value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -204,41 +208,41 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
       {/* ── Section 2: Position Details ──────────────────────────────────── */}
       <section>
         <SectionHeader
-          title="Position Details"
-          description="Location, work arrangement, and salary information."
+          title={t("jobForm.sectionPosition")}
+          description={t("jobForm.sectionPositionDesc")}
         />
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <FormField>
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="location">{t("jobForm.location")}</Label>
             <Input
               id="location"
-              placeholder="e.g. Istanbul, TR"
+              placeholder={t("jobForm.phLocation")}
               {...register("location")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="salaryRange">Salary Range</Label>
+            <Label htmlFor="salaryRange">{t("jobForm.salaryRange")}</Label>
             <Input
               id="salaryRange"
-              placeholder="e.g. ₺50,000 – ₺70,000"
+              placeholder={t("jobForm.phSalary")}
               {...register("salaryRange")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="workType">Work Type</Label>
+            <Label htmlFor="workType">{t("jobForm.workType")}</Label>
             <Select
               defaultValue={defaultValues?.workType ?? "HYBRID"}
               onValueChange={(v) => setValue("workType", v as JobFormValues["workType"])}
             >
               <SelectTrigger id="workType">
-                <SelectValue placeholder="Select work type" />
+                <SelectValue placeholder={t("jobForm.selectWorkType")} />
               </SelectTrigger>
               <SelectContent>
-                {WORK_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {WORK_TYPE_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`workType.${value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -246,18 +250,18 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
           </FormField>
 
           <FormField>
-            <Label htmlFor="jobType">Job Type</Label>
+            <Label htmlFor="jobType">{t("jobForm.jobType")}</Label>
             <Select
               defaultValue={defaultValues?.jobType ?? "FULL_TIME"}
               onValueChange={(v) => setValue("jobType", v as JobFormValues["jobType"])}
             >
               <SelectTrigger id="jobType">
-                <SelectValue placeholder="Select job type" />
+                <SelectValue placeholder={t("jobForm.selectJobType")} />
               </SelectTrigger>
               <SelectContent>
-                {JOB_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
+                {JOB_TYPE_VALUES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {t(`jobType.${value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -269,16 +273,16 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
       {/* ── Section 3: Application Info ──────────────────────────────────── */}
       <section>
         <SectionHeader
-          title="Application Info"
-          description="Where you found the job and your application details."
+          title={t("jobForm.sectionApplication")}
+          description={t("jobForm.sectionApplicationDesc")}
         />
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <FormField className="flex flex-col gap-1.5 sm:col-span-2">
-            <Label htmlFor="url">Job URL</Label>
+            <Label htmlFor="url">{t("jobForm.jobUrl")}</Label>
             <Input
               id="url"
               type="url"
-              placeholder="https://..."
+              placeholder={t("jobForm.phUrl")}
               aria-invalid={!!errors.url}
               {...register("url")}
             />
@@ -286,25 +290,25 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
           </FormField>
 
           <FormField>
-            <Label htmlFor="source">Source</Label>
+            <Label htmlFor="source">{t("jobForm.source")}</Label>
             <Input
               id="source"
-              placeholder="e.g. LinkedIn, Indeed, Referral"
+              placeholder={t("jobForm.phSource")}
               {...register("source")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="cvVersion">CV Version</Label>
+            <Label htmlFor="cvVersion">{t("jobForm.cvVersion")}</Label>
             <Input
               id="cvVersion"
-              placeholder="e.g. v3-senior-frontend"
+              placeholder={t("jobForm.phCvVersion")}
               {...register("cvVersion")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="appliedAt">Applied Date</Label>
+            <Label htmlFor="appliedAt">{t("jobForm.appliedDate")}</Label>
             <Input
               id="appliedAt"
               type="date"
@@ -313,7 +317,7 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
           </FormField>
 
           <FormField>
-            <Label htmlFor="reminderDate">Reminder / Deadline</Label>
+            <Label htmlFor="reminderDate">{t("jobForm.reminderDeadline")}</Label>
             <Input
               id="reminderDate"
               type="date"
@@ -326,35 +330,35 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
       {/* ── Section 4: Notes & Documents ─────────────────────────────────── */}
       <section>
         <SectionHeader
-          title="Notes & Documents"
-          description="Extra context, job description, and cover letter."
+          title={t("jobForm.sectionNotes")}
+          description={t("jobForm.sectionNotesDesc")}
         />
-        <div className="grid gap-5">
+        <div className="grid gap-6">
           <FormField>
-            <Label htmlFor="description">Job Description</Label>
+            <Label htmlFor="description">{t("jobForm.description")}</Label>
             <Textarea
               id="description"
-              placeholder="Paste the job description here…"
+              placeholder={t("jobForm.phDescription")}
               rows={5}
               {...register("description")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="coverLetter">Cover Letter</Label>
+            <Label htmlFor="coverLetter">{t("jobForm.coverLetter")}</Label>
             <Textarea
               id="coverLetter"
-              placeholder="Your cover letter text…"
+              placeholder={t("jobForm.phCoverLetter")}
               rows={5}
               {...register("coverLetter")}
             />
           </FormField>
 
           <FormField>
-            <Label htmlFor="notes">Personal Notes</Label>
+            <Label htmlFor="notes">{t("jobForm.personalNotes")}</Label>
             <Textarea
               id="notes"
-              placeholder="Anything else you want to remember…"
+              placeholder={t("jobForm.phNotes")}
               rows={3}
               {...register("notes")}
             />
@@ -371,18 +375,18 @@ export function JobForm({ defaultValues, action, submitLabel = "Save Job" }: Job
       />
 
       {/* ── Actions ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-end gap-3 border-t border-border pt-6">
+      <div className="flex items-center justify-end gap-3 border-t border-border pt-8">
         <Button
           type="button"
           variant="ghost"
           onClick={() => window.history.back()}
           disabled={isSubmitting}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-30">
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isSubmitting ? "Saving…" : submitLabel}
+          {isSubmitting ? t("common.saving") : (submitLabel ?? t("jobForm.saveJob"))}
         </Button>
       </div>
     </form>

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 import { z } from "zod";
 
 import { requireUserId } from "@/lib/auth";
@@ -16,7 +17,8 @@ import { GeminiEmbeddingError } from "@/lib/ai/embeddings";
 import { discoverMatchingJobs } from "@/lib/discovery/engine";
 import { DiscoveryError } from "@/lib/discovery/remotive";
 import { scheduleJobEnrichment } from "@/lib/jobs/enrichment";
-import type { DiscoveredMatch } from "@/lib/discovery/types";
+import { createNotification } from "@/lib/notifications/create";
+import type { DiscoveredMatch, DiscoveryFilters } from "@/lib/discovery/types";
 
 /**
  * Result-object sözleşmesi + hata kodu: NO_PROFILE ayrı bir koddur çünkü
@@ -54,11 +56,30 @@ export type DiscoverJobsResult =
   | { ok: true; matches: DiscoveredMatch[]; skipped: number; poolSize: number }
   | { ok: false; code: "NO_PROFILE" | "ERROR"; error: string };
 
-export async function discoverJobs(): Promise<DiscoverJobsResult> {
+/** Panelden gelen filtreleri server tarafında yeniden doğrula (Zod). */
+const discoveryFiltersSchema = z.object({
+  source:   z.enum(["remotive", "jsearch"]),
+  query:    z.string().max(120).optional(),
+  location: z.string().max(120).optional(),
+  workType: z.enum(["REMOTE", "HYBRID", "ON_SITE", "ANY"]).optional(),
+});
+
+export async function discoverJobs(
+  rawFilters?: unknown,
+): Promise<DiscoverJobsResult> {
   const userId = await requireUserId();
 
+  let filters: DiscoveryFilters | undefined;
+  if (rawFilters !== undefined) {
+    const parsed = discoveryFiltersSchema.safeParse(rawFilters);
+    if (!parsed.success) {
+      return { ok: false, code: "ERROR", error: "Invalid discovery filters." };
+    }
+    filters = parsed.data;
+  }
+
   try {
-    const result = await discoverMatchingJobs(userId);
+    const result = await discoverMatchingJobs(userId, filters);
     return { ok: true, ...result };
   } catch (e) {
     if (e instanceof CandidateProfileMissingError) {
@@ -85,7 +106,15 @@ const saveDiscoveredJobSchema = z.object({
   description: z.string().min(1),
   location:    z.string().max(200).nullable(),
   salary:      z.string().max(200).nullable(),
+  workType:    z.enum(["REMOTE", "HYBRID", "ON_SITE"]).nullable(),
+  source:      z.enum(["remotive", "jsearch"]),
 });
+
+/** DiscoverySource → Job.source insan-okur etiketi. */
+const SOURCE_LABEL: Record<"remotive" | "jsearch", string> = {
+  remotive: "Remotive (AI Discover)",
+  jsearch:  "JSearch (AI Discover)",
+};
 
 export type SaveDiscoveredJobResult =
   | { ok: true; jobId: string; alreadySaved: boolean }
@@ -121,16 +150,26 @@ export async function saveDiscoveredJob(rawData: unknown): Promise<SaveDiscovere
       title:       data.title,
       company:     data.company,
       status:      "WISHLIST",
-      workType:    "REMOTE", // Remotive = remote ilan kaynağı
+      // Kaynağın bildirdiği tip; bilinmiyorsa remote kaynaklardan gelen
+      // ilanlar için makul varsayılan REMOTE.
+      workType:    data.workType ?? "REMOTE",
       jobUrl:      data.url,
       location:    data.location,
       salary:      data.salary,
-      source:      "Remotive (AI Discover)",
+      source:      SOURCE_LABEL[data.source],
       description: data.description,
     },
   });
 
   scheduleJobEnrichment(job.id, userId, true);
+
+  const t = await getTranslations("notifications");
+  await createNotification(userId, {
+    type:  "JOB_DISCOVERED",
+    title: t("discoveredTitle", { title: job.title }),
+    body:  t("discoveredBody", { company: job.company }),
+    jobId: job.id,
+  });
 
   revalidatePath("/jobs");
   revalidatePath("/dashboard");

@@ -11,6 +11,9 @@ import { jobFormSchema } from "@/lib/validations/job";
 import { parseJob, JobTooShortError, JobParserError, type JobAnalysis } from "@/lib/ai/job-parser";
 import { GeminiError, MissingApiKeyError } from "@/lib/ai/gemini";
 import { scheduleJobEnrichment } from "@/lib/jobs/enrichment";
+import { getTranslations } from "next-intl/server";
+
+import { createNotification } from "@/lib/notifications/create";
 
 // ─── Analyze (form-time, persist yok) ────────────────────────────────────────
 
@@ -198,6 +201,12 @@ export async function updateJobStatus(input: { jobId: string; status: Applicatio
     throw new Error("Invalid status update.");
   }
 
+  // Bildirimde eski→yeni geçişini gösterebilmek için önce mevcut durumu oku.
+  const current = await prisma.job.findFirst({
+    where:  { id: parsed.data.jobId, userId },
+    select: { title: true, status: true },
+  });
+
   const result = await prisma.job.updateMany({
     where: { id: parsed.data.jobId, userId },
     data:  { status: parsed.data.status },
@@ -205,6 +214,22 @@ export async function updateJobStatus(input: { jobId: string; status: Applicatio
 
   if (result.count === 0) {
     throw new Error("Job not found or you don't have access.");
+  }
+
+  if (current && current.status !== parsed.data.status) {
+    const t = await getTranslations();
+    await createNotification(userId, {
+      type:  "STATUS_CHANGED",
+      title: t("notifications.statusTitle", {
+        title:  current.title,
+        status: t(`status.${parsed.data.status}`),
+      }),
+      body: t("notifications.statusBody", {
+        from: t(`status.${current.status}`),
+        to:   t(`status.${parsed.data.status}`),
+      }),
+      jobId: parsed.data.jobId,
+    });
   }
 
   revalidatePath("/jobs");

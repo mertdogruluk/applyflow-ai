@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Briefcase,
   Loader2,
@@ -35,6 +36,7 @@ type ViewState =
  * skeleton grid gösterilir, sonuçlar karta akar.
  */
 export function MatchDashboard({ hasProfile }: MatchDashboardProps) {
+  const t = useTranslations("matches");
   const [view, setView] = useState<ViewState>(
     hasProfile ? { kind: "idle" } : { kind: "no-profile" },
   );
@@ -62,16 +64,13 @@ export function MatchDashboard({ hasProfile }: MatchDashboardProps) {
             <UserRound className="size-6 text-muted-foreground" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium">Set up your career profile first</p>
-            <p className="text-sm text-muted-foreground">
-              Matching compares your CV profile against your saved jobs — upload
-              your CV to unlock it.
-            </p>
+            <p className="text-sm font-medium">{t("noProfileTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("noProfileDesc")}</p>
           </div>
           <Button asChild>
             <Link href="/profile">
               <UserRound data-icon="inline-start" />
-              Go to Career Profile
+              {t("goToProfile")}
             </Link>
           </Button>
         </CardContent>
@@ -86,29 +85,29 @@ export function MatchDashboard({ hasProfile }: MatchDashboardProps) {
         <Button
           onClick={run}
           disabled={isPending}
-          className="group relative overflow-hidden rounded-full px-5 before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-full"
+          className="rounded-full px-5 transition-all duration-300 ease-out hover:bg-primary/90"
         >
           {isPending ? (
             <>
               <Loader2 data-icon="inline-start" className="animate-spin" />
-              Matching…
+              {t("matching")}
             </>
           ) : view.kind === "results" ? (
             <>
               <RefreshCw data-icon="inline-start" />
-              Re-run matching
+              {t("rerunCta")}
             </>
           ) : (
             <>
               <Sparkles data-icon="inline-start" />
-              Find My Matches
+              {t("findCta")}
             </>
           )}
         </Button>
         {view.kind === "results" && !isPending && (
           <span className="text-sm text-muted-foreground">
-            {view.matches.length} {view.matches.length === 1 ? "job" : "jobs"} scored
-            {view.skipped > 0 && ` · ${view.skipped} skipped`}
+            {t("scored", { count: view.matches.length })}
+            {view.skipped > 0 && ` · ${t("skipped", { count: view.skipped })}`}
           </span>
         )}
       </div>
@@ -132,16 +131,13 @@ export function MatchDashboard({ hasProfile }: MatchDashboardProps) {
                 <Briefcase className="size-6 text-muted-foreground" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">No jobs ready for matching</p>
-                <p className="text-sm text-muted-foreground">
-                  Add a job with a description — AI indexes it in the background
-                  and it becomes matchable within seconds.
-                </p>
+                <p className="text-sm font-medium">{t("emptyTitle")}</p>
+                <p className="text-sm text-muted-foreground">{t("emptyDesc")}</p>
               </div>
               <Button asChild variant="outline">
                 <Link href="/jobs/new">
                   <Briefcase data-icon="inline-start" />
-                  Add a job
+                  {t("addJob")}
                 </Link>
               </Button>
             </CardContent>

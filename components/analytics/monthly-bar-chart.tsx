@@ -1,3 +1,5 @@
+import { useTranslations } from "next-intl";
+
 import type { MonthlyPoint } from "@/lib/queries/analytics";
 
 interface Props {
@@ -9,13 +11,14 @@ interface Props {
  * Veri yoksa empty state göster.
  */
 export function MonthlyBarChart({ data }: Props) {
+  const t = useTranslations("analytics");
   const max = Math.max(1, ...data.map((d) => d.count));
   const total = data.reduce((s, d) => s + d.count, 0);
 
   if (total === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No applications in the last {data.length} months yet.
+        {t("monthlyEmpty", { months: data.length })}
       </p>
     );
   }

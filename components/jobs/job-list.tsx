@@ -6,31 +6,29 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { StatusSelect } from "@/components/jobs/status-select";
 import { formatDate } from "@/lib/format";
-import type { Job, WorkType } from "@prisma/client";
-
-const WORK_TYPE_LABEL: Record<WorkType, string> = {
-  REMOTE:  "Remote",
-  HYBRID:  "Hybrid",
-  ON_SITE: "On-site",
-};
+import type { Job } from "@prisma/client";
 
 // ─── Job Row ─────────────────────────────────────────────────────────────────
 
 function JobRow({ job }: { job: Job }) {
+  const t = useTranslations();
+  const locale = useLocale();
+
   return (
-    <div className="group relative flex items-center gap-4 px-5 py-4 transition-colors hover:bg-muted/50">
+    <div className="group relative flex items-center gap-4 px-6 py-5 transition-colors duration-300 ease-out hover:bg-muted/40">
       {/* Whole-row link sits behind interactive controls */}
       <Link
         href={`/jobs/${job.id}`}
-        aria-label={`Open ${job.title} at ${job.company}`}
+        aria-label={t("jobs.openAria", { title: job.title, company: job.company })}
         className="absolute inset-0 z-0"
       />
 
       {/* Company icon */}
-      <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground group-hover:bg-background">
+      <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground transition-colors duration-300 ease-out group-hover:bg-background">
         <Briefcase className="h-4 w-4" />
       </div>
 
@@ -53,7 +51,7 @@ function JobRow({ job }: { job: Job }) {
             </span>
           )}
           <span className="text-xs text-muted-foreground">
-            {WORK_TYPE_LABEL[job.workType]}
+            {t(`workType.${job.workType}`)}
           </span>
         </div>
       </div>
@@ -63,10 +61,10 @@ function JobRow({ job }: { job: Job }) {
         {job.appliedAt ? (
           <span className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            {formatDate(job.appliedAt)}
+            {formatDate(job.appliedAt, locale)}
           </span>
         ) : (
-          <span className="text-xs text-muted-foreground">Not applied</span>
+          <span className="text-xs text-muted-foreground">{t("jobs.notApplied")}</span>
         )}
       </div>
 
@@ -75,7 +73,7 @@ function JobRow({ job }: { job: Job }) {
         <StatusSelect jobId={job.id} status={job.status} />
       </div>
 
-      <ChevronRight className="relative z-10 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 pointer-events-none" />
+      <ChevronRight className="relative z-10 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 pointer-events-none" />
     </div>
   );
 }
@@ -87,13 +85,15 @@ interface JobListProps {
 }
 
 export function JobList({ jobs }: JobListProps) {
+  const t = useTranslations("jobs");
+
   return (
-    <Card className="overflow-hidden p-0">
+    <Card className="gap-0 overflow-hidden p-0">
       {/* Table header */}
-      <div className="hidden border-b border-border bg-muted/30 px-5 py-2.5 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-4">
-        <span className="text-xs font-medium text-muted-foreground">Position / Company</span>
-        <span className="w-28 text-right text-xs font-medium text-muted-foreground">Applied</span>
-        <span className="text-xs font-medium text-muted-foreground">Status</span>
+      <div className="hidden border-b border-border bg-muted/30 px-6 py-3 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-4">
+        <span className="text-xs font-medium text-muted-foreground">{t("listHeaderPosition")}</span>
+        <span className="w-28 text-right text-xs font-medium text-muted-foreground">{t("listHeaderApplied")}</span>
+        <span className="text-xs font-medium text-muted-foreground">{t("listHeaderStatus")}</span>
         <span className="w-4" />
       </div>
 
@@ -107,9 +107,9 @@ export function JobList({ jobs }: JobListProps) {
       </ul>
 
       {/* Footer count */}
-      <div className="border-t border-border bg-muted/20 px-5 py-2.5">
+      <div className="border-t border-border bg-muted/20 px-6 py-3">
         <p className="text-xs text-muted-foreground">
-          {jobs.length} {jobs.length === 1 ? "application" : "applications"} total
+          {t("totalCount", { count: jobs.length })}
         </p>
       </div>
     </Card>

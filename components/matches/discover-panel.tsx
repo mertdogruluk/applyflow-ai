@@ -2,20 +2,31 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Compass,
   Loader2,
+  MapPin,
   RefreshCw,
   TriangleAlert,
   UserRound,
 } from "lucide-react";
+import type { WorkType } from "@prisma/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DiscoverJobCard } from "@/components/matches/discover-job-card";
 import { MatchGridSkeleton } from "@/components/matches/match-grid-skeleton";
 import { discoverJobs } from "@/app/(dashboard)/matches/actions";
-import type { DiscoveredMatch } from "@/lib/discovery/types";
+import type { DiscoveredMatch, DiscoverySource } from "@/lib/discovery/types";
 
 interface DiscoverPanelProps {
   hasProfile: boolean;
@@ -27,19 +38,32 @@ type ViewState =
   | { kind: "no-profile" }
   | { kind: "error"; message: string };
 
+type WorkTypeFilter = WorkType | "ANY";
+
 /**
  * Keşif sekmesinin durum makinesi — MatchDashboard ile aynı desen.
  * Gerçek ilanlar dış API'den gelir; LLM yalnızca puanlar (halüsinasyon yok).
+ * Filtreler: kaynak (global remote / Türkiye), çalışma tipi, konum + arama.
  */
 export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
+  const t = useTranslations();
   const [view, setView] = useState<ViewState>(
     hasProfile ? { kind: "idle" } : { kind: "no-profile" },
   );
+  const [source, setSource] = useState<DiscoverySource>("remotive");
+  const [workType, setWorkType] = useState<WorkTypeFilter>("ANY");
+  const [query, setQuery] = useState("");
+  const [location, setLocation] = useState("");
   const [isPending, startTransition] = useTransition();
 
   function run() {
     startTransition(async () => {
-      const result = await discoverJobs();
+      const result = await discoverJobs({
+        source,
+        workType,
+        query:    query.trim() || undefined,
+        location: location.trim() || undefined,
+      });
       if (result.ok) {
         setView({
           kind:     "results",
@@ -63,16 +87,13 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
             <UserRound className="size-6 text-muted-foreground" />
           </div>
           <div className="space-y-1">
-            <p className="text-sm font-medium">Set up your career profile first</p>
-            <p className="text-sm text-muted-foreground">
-              Discovery searches real remote job postings and scores them
-              against your CV profile.
-            </p>
+            <p className="text-sm font-medium">{t("matches.noProfileTitle")}</p>
+            <p className="text-sm text-muted-foreground">{t("discover.noProfileDesc")}</p>
           </div>
           <Button asChild>
             <Link href="/profile">
               <UserRound data-icon="inline-start" />
-              Go to Career Profile
+              {t("matches.goToProfile")}
             </Link>
           </Button>
         </CardContent>
@@ -82,43 +103,96 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      {/* ── Filtre barı ─────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/40 p-4">
+        <Select
+          value={source}
+          onValueChange={(v) => setSource(v as DiscoverySource)}
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="remotive">{t("discover.srcRemote")}</SelectItem>
+            <SelectItem value="jsearch">{t("discover.srcTurkey")}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={workType}
+          onValueChange={(v) => setWorkType(v as WorkTypeFilter)}
+          disabled={isPending}
+        >
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ANY">{t("workType.ANY")}</SelectItem>
+            <SelectItem value="REMOTE">{t("workType.REMOTE")}</SelectItem>
+            <SelectItem value="HYBRID">{t("workType.HYBRID")}</SelectItem>
+            <SelectItem value="ON_SITE">{t("workType.ON_SITE")}</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {source === "jsearch" && (
+          <div className="relative">
+            <MapPin className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              disabled={isPending}
+              placeholder={t("discover.cityPlaceholder")}
+              className="w-44 pl-8"
+            />
+          </div>
+        )}
+
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          disabled={isPending}
+          placeholder={t("discover.keywordsPlaceholder")}
+          className="min-w-52 flex-1"
+        />
+
         <Button
           onClick={run}
           disabled={isPending}
-          className="group relative overflow-hidden rounded-full px-5 before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:transition-transform before:duration-700 hover:before:translate-x-full"
+          className="rounded-full px-5 transition-all duration-300 ease-out hover:bg-primary/90"
         >
           {isPending ? (
             <>
               <Loader2 data-icon="inline-start" className="animate-spin" />
-              Discovering…
+              {t("discover.discovering")}
             </>
           ) : view.kind === "results" ? (
             <>
               <RefreshCw data-icon="inline-start" />
-              Discover again
+              {t("discover.again")}
             </>
           ) : (
             <>
               <Compass data-icon="inline-start" />
-              Discover jobs for me
+              {t("discover.cta")}
             </>
           )}
         </Button>
-        {view.kind === "results" && !isPending && (
-          <span className="text-sm text-muted-foreground">
-            {view.matches.length} of {view.poolSize} live postings matched
-            {view.skipped > 0 && ` · ${view.skipped} skipped`}
-          </span>
-        )}
       </div>
 
+      {view.kind === "results" && !isPending && (
+        <p className="text-sm text-muted-foreground">
+          {t("discover.matchedOf", { matched: view.matches.length, pool: view.poolSize })}
+          {view.skipped > 0 && ` · ${t("matches.skipped", { count: view.skipped })}`}
+        </p>
+      )}
+
       {isPending ? (
-        <MatchGridSkeleton message="Fetching live remote postings and scoring them against your profile…" />
+        <MatchGridSkeleton message={t("discover.loadingMsg")} />
       ) : view.kind === "error" ? (
         <div
           role="alert"
-          className="flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+          className="flex items-start gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           {view.message}
@@ -131,10 +205,9 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
                 <Compass className="size-6 text-muted-foreground" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm font-medium">No matching postings right now</p>
+                <p className="text-sm font-medium">{t("discover.emptyTitle")}</p>
                 <p className="text-sm text-muted-foreground">
-                  {view.poolSize} live postings were checked but none overlapped
-                  with your profile — try again later, new jobs are posted daily.
+                  {t("discover.emptyDesc", { pool: view.poolSize })}
                 </p>
               </div>
             </CardContent>
@@ -147,10 +220,7 @@ export function DiscoverPanel({ hasProfile }: DiscoverPanelProps) {
           </div>
         )
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Real postings are fetched from Remotive and scored by the AI judge —
-          nothing is invented, and saving one adds it straight to your wishlist.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("discover.idleHint")}</p>
       )}
     </div>
   );

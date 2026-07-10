@@ -1,4 +1,6 @@
 import type { ApplicationStatus } from "@prisma/client";
+import { useTranslations } from "next-intl";
+
 import { STATUS_CONFIG } from "@/lib/status";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +10,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const t = useTranslations("status");
   const cfg = STATUS_CONFIG[status];
   return (
     <span
@@ -17,7 +20,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
         className,
       )}
     >
-      {cfg.label}
+      {t(status)}
     </span>
   );
 }

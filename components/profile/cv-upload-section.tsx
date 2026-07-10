@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ClipboardPaste, CloudUpload, Loader2, RotateCcw, Sparkles, TriangleAlert } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,6 +27,8 @@ interface CvUploadSectionProps {
  * Analiz sırasında iskelet gösterilir — ekran asla donuk kalmaz.
  */
 export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
+  const t = useTranslations("profile");
+  const tc = useTranslations("common");
   const [mode, setMode] = useState<InputMode>("upload");
   const [pasteValue, setPasteValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +60,7 @@ export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium">
-            {profileToShow ? "Update your CV" : "Upload your CV"}
+            {profileToShow ? t("updateCv") : t("uploadCv")}
           </h3>
           <Button
             variant="ghost"
@@ -71,12 +74,12 @@ export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
             {mode === "upload" ? (
               <>
                 <ClipboardPaste data-icon="inline-start" />
-                Paste text instead
+                {t("pasteInstead")}
               </>
             ) : (
               <>
                 <CloudUpload data-icon="inline-start" />
-                Upload a file instead
+                {t("uploadInstead")}
               </>
             )}
           </Button>
@@ -94,7 +97,7 @@ export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
               value={pasteValue}
               onChange={(e) => setPasteValue(e.target.value)}
               disabled={isPending}
-              placeholder="Paste the full text of your CV here…"
+              placeholder={t("pastePlaceholder")}
               className="min-h-40 resize-y"
             />
             <Button
@@ -104,12 +107,12 @@ export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
               {isPending ? (
                 <>
                   <Loader2 data-icon="inline-start" className="animate-spin" />
-                  Analyzing…
+                  {t("analyzing")}
                 </>
               ) : (
                 <>
                   <Sparkles data-icon="inline-start" />
-                  Analyze CV
+                  {t("analyzeCv")}
                 </>
               )}
             </Button>
@@ -123,7 +126,7 @@ export function CvUploadSection({ initialProfile }: CvUploadSectionProps) {
           >
             <TriangleAlert className="mt-0.5 size-4 shrink-0" />
             <div className="flex-1">{error}</div>
-            <Button variant="ghost" size="icon-xs" onClick={() => setError(null)} aria-label="Dismiss">
+            <Button variant="ghost" size="icon-xs" onClick={() => setError(null)} aria-label={tc("dismiss")}>
               <RotateCcw />
             </Button>
           </div>

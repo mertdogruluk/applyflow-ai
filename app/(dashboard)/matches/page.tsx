@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Compass, Target } from "lucide-react";
 
 import { prisma } from "@/lib/prisma";
@@ -19,27 +20,24 @@ export default async function MatchesPage() {
     select: { userId: true },
   });
   const hasProfile = Boolean(profile);
+  const t = await getTranslations("matches");
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold tracking-tight">Matches</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Two-stage AI matching against your CV profile — score your saved jobs,
-          or discover real remote postings you haven&apos;t seen yet. Extra
-          skills never count against you.
-        </p>
+        <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       <Tabs defaultValue="my-jobs">
         <TabsList>
           <TabsTrigger value="my-jobs">
             <Target />
-            My Jobs
+            {t("tabMyJobs")}
           </TabsTrigger>
           <TabsTrigger value="discover">
             <Compass />
-            Discover
+            {t("tabDiscover")}
           </TabsTrigger>
         </TabsList>
 

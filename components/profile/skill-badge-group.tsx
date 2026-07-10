@@ -6,18 +6,14 @@ import { cn } from "@/lib/utils";
 type SkillTone = "primary" | "muted" | "critical" | "advantage";
 
 /**
- * Ton → Badge görünümü eşlemesi.
- * critical/advantage: temada success token'ı olmadığı için advantage bilinçli
- * bir emerald istisnasıdır — yeni bir yerde "yeşil" gerekirse buradan türetin.
+ * Ton → Badge görünümü eşlemesi. Tüm tonlar artık semantik Badge
+ * variant'larına oturur (accent/success temaya eklendi).
  */
-const TONE_STYLES: Record<SkillTone, { variant: "default" | "secondary" | "destructive"; className?: string }> = {
-  primary:   { variant: "default" },
+const TONE_STYLES: Record<SkillTone, { variant: "accent" | "secondary" | "destructive" | "success"; className?: string }> = {
+  primary:   { variant: "accent" },
   muted:     { variant: "secondary" },
   critical:  { variant: "destructive" },
-  advantage: {
-    variant:   "secondary",
-    className: "bg-emerald-500/15 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400",
-  },
+  advantage: { variant: "success" },
 };
 
 interface SkillBadgeGroupProps {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, AlertCircle } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,11 +24,13 @@ interface ProjectFormProps {
 }
 
 function FieldError({ message }: { message?: string }) {
+  // Zod mesajları i18n anahtarıdır ("validation.x") — burada çevrilir.
+  const t = useTranslations();
   if (!message) return null;
   return (
     <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
       <AlertCircle className="h-3 w-3 shrink-0" />
-      {message}
+      {message.startsWith("validation.") ? t(message) : message}
     </p>
   );
 }
@@ -35,8 +38,9 @@ function FieldError({ message }: { message?: string }) {
 export function ProjectForm({
   defaultValues,
   action,
-  submitLabel = "Save Project",
+  submitLabel,
 }: ProjectFormProps) {
+  const t = useTranslations();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -53,7 +57,7 @@ export function ProjectForm({
     try {
       await action(data);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong.";
+      const msg = err instanceof Error ? err.message : t("common.genericError");
       if (!msg.includes("NEXT_REDIRECT")) setServerError(msg);
     }
   };
@@ -69,11 +73,11 @@ export function ProjectForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="name">
-          Project Name <span className="text-destructive">*</span>
+          {t("projects.name")} <span className="text-destructive">*</span>
         </Label>
         <Input
           id="name"
-          placeholder="e.g. ApplyFlow AI"
+          placeholder={t("projects.phName")}
           aria-invalid={!!errors.name}
           {...register("name")}
         />
@@ -81,18 +85,18 @@ export function ProjectForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">{t("projects.description")}</Label>
         <Textarea
           id="description"
           rows={4}
-          placeholder="Short summary of what this project does and the problem it solves…"
+          placeholder={t("projects.phDescription")}
           {...register("description")}
         />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="githubUrl">GitHub URL</Label>
+          <Label htmlFor="githubUrl">{t("projects.githubUrl")}</Label>
           <Input
             id="githubUrl"
             type="url"
@@ -104,7 +108,7 @@ export function ProjectForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="liveUrl">Live URL</Label>
+          <Label htmlFor="liveUrl">{t("projects.liveUrl")}</Label>
           <Input
             id="liveUrl"
             type="url"
@@ -117,14 +121,14 @@ export function ProjectForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="techStackInput">Tech Stack</Label>
+        <Label htmlFor="techStackInput">{t("projects.techStack")}</Label>
         <Input
           id="techStackInput"
-          placeholder="Next.js, TypeScript, PostgreSQL"
+          placeholder={t("projects.phTechStack")}
           {...register("techStackInput")}
         />
         <p className="mt-0.5 text-xs text-muted-foreground">
-          Comma-separated. These badges show up on your project card.
+          {t("projects.techHint")}
         </p>
       </div>
 
@@ -135,11 +139,11 @@ export function ProjectForm({
           onClick={() => window.history.back()}
           disabled={isSubmitting}
         >
-          Cancel
+          {t("common.cancel")}
         </Button>
-        <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-[120px]">
+        <Button type="submit" disabled={isSubmitting} className="gap-2 min-w-30">
           {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {isSubmitting ? "Saving…" : submitLabel}
+          {isSubmitting ? t("common.saving") : (submitLabel ?? t("projects.saveProject"))}
         </Button>
       </div>
     </form>

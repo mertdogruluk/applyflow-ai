@@ -1,4 +1,5 @@
 import { Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,16 +30,18 @@ function MatchCardSkeleton() {
  */
 export function MatchGridSkeleton({
   count = 6,
-  message = "AI judge is scoring your jobs — this takes a few seconds…",
+  message,
 }: {
   count?: number;
   message?: string;
 }) {
+  const t = useTranslations("matches");
+
   return (
     <div className="space-y-4" aria-busy="true" aria-live="polite">
       <p className="flex items-center gap-2 text-sm text-muted-foreground">
         <Sparkles className="size-4 animate-pulse text-primary" />
-        <span className="animate-pulse">{message}</span>
+        <span className="animate-pulse">{message ?? t("skeletonDefault")}</span>
       </p>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: count }, (_, i) => (

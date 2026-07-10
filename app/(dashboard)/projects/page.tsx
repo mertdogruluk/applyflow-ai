@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 import { requireUserId } from "@/lib/auth";
 import { getProjectsByUser } from "@/lib/queries/projects";
@@ -12,21 +13,19 @@ export const metadata = { title: "Projects – ApplyFlow AI" };
 export default async function ProjectsPage() {
   const userId = await requireUserId();
   const projects = await getProjectsByUser(userId);
+  const t = await getTranslations("projects");
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">Projects</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Your portfolio projects. Link them to job applications so the AI can
-            tailor your CV bullets and cover letter.
-          </p>
+          <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t("subtitle")}</p>
         </div>
         <Button asChild size="sm" className="shrink-0 gap-2">
           <Link href="/projects/new">
             <Plus className="h-4 w-4" />
-            New Project
+            {t("newProject")}
           </Link>
         </Button>
       </div>

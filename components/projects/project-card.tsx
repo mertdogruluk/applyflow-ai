@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Github, ExternalLink, Briefcase } from "lucide-react";
+import { useTranslations } from "next-intl";
 import type { Project } from "@prisma/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project }: ProjectCardProps) {
+  const t = useTranslations("projects");
   return (
     <Card className="group relative flex flex-col gap-3 p-5 transition-shadow hover:shadow-md">
       <Link href={`/projects/${project.id}`} className="absolute inset-0 z-0" aria-label={project.name} />
@@ -54,7 +56,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <Github className="h-3 w-3" />
-              GitHub
+              {t("github")}
             </a>
           )}
           {project.liveUrl && (
@@ -66,7 +68,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               onClick={(e) => e.stopPropagation()}
             >
               <ExternalLink className="h-3 w-3" />
-              Live
+              {t("live")}
             </a>
           )}
         </div>

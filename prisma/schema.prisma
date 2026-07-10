@@ -54,6 +54,15 @@ enum MatchVerdict {
   NOT_RELEVANT
 }
 
+/// Zil panelinde gösterilen bildirim türleri; ikon/etiket eşlemesi UI'da.
+enum NotificationType {
+  ANALYSIS_READY
+  JOB_ENRICHED
+  STATUS_CHANGED
+  JOB_DISCOVERED
+  MATCH_READY
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 /// Bir iş veya staj başvurusunu temsil eder.
@@ -219,6 +228,25 @@ model MatchResult {
   @@unique([jobId, projectId])
   @@index([jobId])
   @@index([projectId])
+}
+
+/// Kullanıcıya gösterilen uygulama içi bildirim (zil paneli).
+/// Job'a FK bağlanmaz: ilan silinse bile bildirim geçmişi ayakta kalır,
+/// deep-link jobId üzerinden best-effort çözülür.
+model Notification {
+  id     String @id @default(cuid())
+  userId String // Clerk userId — veri izolasyonu
+
+  type  NotificationType
+  title String
+  body  String?
+  jobId String? // opsiyonel deep-link hedefi (/jobs/{jobId})
+
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 /// Bir iş başvurusuna bağlı hatırlatıcıyı temsil eder.

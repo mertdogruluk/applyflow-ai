@@ -3,8 +3,9 @@
 import { useState, useTransition } from "react";
 import type { ApplicationStatus } from "@prisma/client";
 import { ChevronDown, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
-import { STATUS_CONFIG, STATUS_OPTIONS } from "@/lib/status";
+import { STATUS_CONFIG, STATUS_VALUES } from "@/lib/status";
 import { updateJobStatus } from "@/app/(dashboard)/jobs/actions";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ interface StatusSelectProps {
 export function StatusSelect({ jobId, status, variant = "badge" }: StatusSelectProps) {
   const [current, setCurrent] = useState<ApplicationStatus>(status);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations();
   const cfg = STATUS_CONFIG[current];
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -42,23 +44,23 @@ export function StatusSelect({ jobId, status, variant = "badge" }: StatusSelectP
           isPending && "opacity-70",
         )}
       >
-        {cfg.label}
+        {t(`status.${current}`)}
         {isPending ? (
           <Loader2 className="h-3 w-3 animate-spin" />
         ) : (
           <ChevronDown className="h-3 w-3 opacity-60" />
         )}
         <select
-          aria-label="Update status"
+          aria-label={t("jobs.updateStatus")}
           className="absolute inset-0 cursor-pointer opacity-0"
           value={current}
           onChange={handleChange}
           disabled={isPending}
           onClick={(e) => e.stopPropagation()}
         >
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {STATUS_VALUES.map((value) => (
+            <option key={value} value={value}>
+              {t(`status.${value}`)}
             </option>
           ))}
         </select>
@@ -73,9 +75,9 @@ export function StatusSelect({ jobId, status, variant = "badge" }: StatusSelectP
       onChange={handleChange}
       disabled={isPending}
     >
-      {STATUS_OPTIONS.map((opt) => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
+      {STATUS_VALUES.map((value) => (
+        <option key={value} value={value}>
+          {t(`status.${value}`)}
         </option>
       ))}
     </select>

@@ -13,6 +13,8 @@ import {
   FileText,
 } from "lucide-react";
 
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { requireUserId } from "@/lib/auth";
 import { getJobByIdForUser } from "@/lib/queries/jobs";
 import { formatDate } from "@/lib/format";
@@ -26,20 +28,13 @@ import { prisma } from "@/lib/prisma";
 
 export const metadata = { title: "Job Details – ApplyFlow AI" };
 
-const WORK_TYPE_LABEL = { REMOTE: "Remote", HYBRID: "Hybrid", ON_SITE: "On-site" } as const;
-const JOB_TYPE_LABEL  = {
-  FULL_TIME: "Full-time",
-  PART_TIME: "Part-time",
-  INTERNSHIP: "Internship",
-  CONTRACT: "Contract",
-  FREELANCE: "Freelance",
-} as const;
-
 type Params = { params: Promise<{ id: string }> };
 
 export default async function JobDetailPage({ params }: Params) {
   const { id } = await params;
   const userId = await requireUserId();
+  const t = await getTranslations();
+  const locale = await getLocale();
 
   const job = await getJobByIdForUser(id, userId);
   if (!job) notFound();
@@ -60,7 +55,7 @@ export default async function JobDetailPage({ params }: Params) {
         <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
           <Link href="/jobs">
             <ChevronLeft className="h-4 w-4" />
-            Back to Jobs
+            {t("jobs.backToJobs")}
           </Link>
         </Button>
 
@@ -68,7 +63,7 @@ export default async function JobDetailPage({ params }: Params) {
           <Button asChild variant="outline" size="sm" className="gap-1.5">
             <Link href={`/jobs/${job.id}/edit`}>
               <Pencil className="h-3.5 w-3.5" />
-              Edit
+              {t("common.edit")}
             </Link>
           </Button>
           <DeleteJobButton jobId={job.id} jobTitle={job.title} />
@@ -96,7 +91,7 @@ export default async function JobDetailPage({ params }: Params) {
               )}
               <span className="flex items-center gap-1.5">
                 <Briefcase className="h-3.5 w-3.5" />
-                {WORK_TYPE_LABEL[job.workType]} · {JOB_TYPE_LABEL[job.jobType]}
+                {t(`workType.${job.workType}`)} · {t(`jobType.${job.jobType}`)}
               </span>
             </div>
 
@@ -108,7 +103,7 @@ export default async function JobDetailPage({ params }: Params) {
                 className="mt-3 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                View original posting
+                {t("jobs.viewOriginal")}
               </a>
             )}
           </div>
@@ -125,7 +120,7 @@ export default async function JobDetailPage({ params }: Params) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  Job Description
+                  {t("jobs.jobDescription")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -151,7 +146,7 @@ export default async function JobDetailPage({ params }: Params) {
           {job.coverLetter && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Cover Letter</CardTitle>
+                <CardTitle className="text-base">{t("jobs.coverLetter")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/90">
@@ -165,7 +160,7 @@ export default async function JobDetailPage({ params }: Params) {
           {job.notes && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Personal Notes</CardTitle>
+                <CardTitle className="text-base">{t("jobs.personalNotes")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
@@ -180,23 +175,23 @@ export default async function JobDetailPage({ params }: Params) {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Application Details</CardTitle>
+              <CardTitle className="text-base">{t("jobs.applicationDetails")}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="space-y-3 text-sm">
-                <Detail icon={Calendar} label="Applied">
-                  {formatDate(job.appliedAt) ?? "—"}
+                <Detail icon={Calendar} label={t("jobs.applied")}>
+                  {formatDate(job.appliedAt, locale) ?? "—"}
                 </Detail>
-                <Detail icon={Calendar} label="Deadline / Reminder">
-                  {formatDate(job.deadline)}
+                <Detail icon={Calendar} label={t("jobs.deadlineReminder")}>
+                  {formatDate(job.deadline, locale)}
                 </Detail>
-                <Detail icon={Globe} label="Source">
+                <Detail icon={Globe} label={t("jobs.source")}>
                   {job.source ?? "—"}
                 </Detail>
-                <Detail icon={DollarSign} label="Salary Range">
+                <Detail icon={DollarSign} label={t("jobs.salaryRange")}>
                   {job.salary ?? "—"}
                 </Detail>
-                <Detail icon={FileText} label="CV Version">
+                <Detail icon={FileText} label={t("jobs.cvVersion")}>
                   {job.cvVersion ?? "—"}
                 </Detail>
               </dl>
@@ -205,17 +200,17 @@ export default async function JobDetailPage({ params }: Params) {
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Timeline</CardTitle>
+              <CardTitle className="text-base">{t("jobs.timeline")}</CardTitle>
             </CardHeader>
             <CardContent>
               <dl className="space-y-2 text-sm text-muted-foreground">
                 <div className="flex justify-between">
-                  <dt>Created</dt>
-                  <dd className="text-foreground">{formatDate(job.createdAt)}</dd>
+                  <dt>{t("jobs.created")}</dt>
+                  <dd className="text-foreground">{formatDate(job.createdAt, locale)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt>Last updated</dt>
-                  <dd className="text-foreground">{formatDate(job.updatedAt)}</dd>
+                  <dt>{t("jobs.lastUpdated")}</dt>
+                  <dd className="text-foreground">{formatDate(job.updatedAt, locale)}</dd>
                 </div>
               </dl>
             </CardContent>
